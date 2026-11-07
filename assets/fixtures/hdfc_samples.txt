@@ -1,0 +1,6 @@
+# Sample HDFC Bank SMS strings for parser unit tests.
+# Format: one SMS per line. These are synthetic test vectors — not real customer data.
+
+Your a/c XX4321 has been debited for Rs.500.00 on 01-11-26. UPI:Swiggy Order. Avl Bal:Rs.14,230.50. -HDFC Bank
+Rs.1,250.00 debited from a/c XX4321 on 01-11-26 to BLINKIT ORDERS via UPI. Ref No 123456789012. Avl Bal Rs.12,980.50
+Your HDFC Bank a/c XX4321 is credited with Rs.50,000.00 on 01-11-26 by NEFT from EMPLOYER CO LTD. Avl Bal:Rs.62,980.50
