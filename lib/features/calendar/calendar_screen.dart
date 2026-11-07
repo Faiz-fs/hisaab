@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -72,9 +71,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 
   bool _sameDay(DateTime a, DateTime b) {
-    return a.year == b.year &&
-        a.month == b.month &&
-        a.day == b.day;
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   void _changeMonth(int offset) {
@@ -96,9 +93,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     });
   }
 
-  Map<DateTime, List<TodayTxn>> _groupTransactions(
-    List<TodayTxn> txns,
-  ) {
+  Map<DateTime, List<TodayTxn>> _groupTransactions(List<TodayTxn> txns) {
     final grouped = <DateTime, List<TodayTxn>>{};
 
     for (final txn in txns) {
@@ -109,10 +104,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     return grouped;
   }
 
-  int _spentOn(
-    DateTime date,
-    Map<DateTime, List<TodayTxn>> grouped,
-  ) {
+  int _spentOn(DateTime date, Map<DateTime, List<TodayTxn>> grouped) {
     return (grouped[date] ?? []).fold<int>(
       0,
       (sum, txn) => sum + txn.amountPaise,
@@ -143,30 +135,16 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       children: [
         CircleAvatar(radius: 5, backgroundColor: color),
         const SizedBox(width: 6),
-        Flexible(
-          child: Text(
-            '$count $label',
-            style: _title(11),
-            maxLines: 1,
-          ),
-        ),
+        Flexible(child: Text('$count $label', style: _title(11), maxLines: 1)),
       ],
     );
   }
 
-  Widget _summary(
-    TodayData data,
-    Map<DateTime, List<TodayTxn>> grouped,
-  ) {
+  Widget _summary(TodayData data, Map<DateTime, List<TodayTxn>> grouped) {
     final now = DateTime.now();
-    final currentMonth =
-        _month.year == now.year && _month.month == now.month;
+    final currentMonth = _month.year == now.year && _month.month == now.month;
 
-    final daysInMonth = DateTime(
-      _month.year,
-      _month.month + 1,
-      0,
-    ).day;
+    final daysInMonth = DateTime(_month.year, _month.month + 1, 0).day;
 
     final lastDay = currentMonth ? now.day : daysInMonth;
     final dailyBudget = data.budget.dailyBudgetPaise;
@@ -234,9 +212,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 color: AppColors.textPrimary,
               ),
               IconButton(
-                onPressed: currentMonth
-                    ? null
-                    : () => _changeMonth(1),
+                onPressed: currentMonth ? null : () => _changeMonth(1),
                 icon: const Icon(Icons.chevron_right),
                 color: AppColors.textPrimary,
               ),
@@ -246,10 +222,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           Row(
             children: [
               Expanded(
-                child: Text(
-                  '${_money(spent)} spent',
-                  style: _title(13),
-                ),
+                child: Text('${_money(spent)} spent', style: _title(13)),
               ),
               Text(
                 remaining >= 0
@@ -257,9 +230,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     : '${_money(-remaining)} over',
                 style: _title(
                   13,
-                  color: remaining >= 0
-                      ? AppColors.mint
-                      : AppColors.red,
+                  color: remaining >= 0 ? AppColors.mint : AppColors.red,
                 ),
               ),
             ],
@@ -270,18 +241,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 9,
-              color: remaining >= 0
-                  ? AppColors.mint
-                  : AppColors.red,
+              color: remaining >= 0 ? AppColors.mint : AppColors.red,
               backgroundColor: AppColors.nested,
             ),
           ),
           const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.symmetric(
-              vertical: 13,
-              horizontal: 8,
-            ),
+            padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 8),
             decoration: BoxDecoration(
               color: AppColors.background,
               borderRadius: BorderRadius.circular(12),
@@ -300,19 +266,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _heatmap(
-    TodayData data,
-    Map<DateTime, List<TodayTxn>> grouped,
-  ) {
+  Widget _heatmap(TodayData data, Map<DateTime, List<TodayTxn>> grouped) {
     final now = DateTime.now();
-    final daysInMonth =
-        DateTime(_month.year, _month.month + 1, 0).day;
+    final daysInMonth = DateTime(_month.year, _month.month + 1, 0).day;
 
-    final firstWeekday = DateTime(
-      _month.year,
-      _month.month,
-      1,
-    ).weekday;
+    final firstWeekday = DateTime(_month.year, _month.month, 1).weekday;
 
     final cells = <Widget>[];
 
@@ -323,37 +281,25 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     for (int day = 1; day <= daysInMonth; day++) {
       final date = DateTime(_month.year, _month.month, day);
       final spent = _spentOn(date, grouped);
-      final future = date.isAfter(
-        DateTime(now.year, now.month, now.day),
-      );
+      final future = date.isAfter(DateTime(now.year, now.month, now.day));
       final selected = _sameDay(date, _selectedDate);
-      final color = _heatColor(
-        spent,
-        data.budget.dailyBudgetPaise,
-      );
+      final color = _heatColor(spent, data.budget.dailyBudgetPaise);
 
       cells.add(
         InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: future
-              ? null
-              : () => setState(() => _selectedDate = date),
+          onTap: future ? null : () => setState(() => _selectedDate = date),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             decoration: BoxDecoration(
               color: selected
                   ? AppColors.primary
                   : future
-                      ? Colors.transparent
-                      : _heatBackground(
-                          spent,
-                          data.budget.dailyBudgetPaise,
-                        ),
+                  ? Colors.transparent
+                  : _heatBackground(spent, data.budget.dailyBudgetPaise),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: selected
-                    ? AppColors.primary
-                    : Colors.transparent,
+                color: selected ? AppColors.primary : Colors.transparent,
                 width: 1.5,
               ),
             ),
@@ -367,11 +313,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     color: selected
                         ? AppColors.onPrimary
                         : future
-                            ? AppColors.textSecondary
-                                .withValues(alpha: 0.35)
-                            : spent > 0
-                                ? color
-                                : AppColors.textSecondary,
+                        ? AppColors.textSecondary.withValues(alpha: 0.35)
+                        : spent > 0
+                        ? color
+                        : AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -379,18 +324,17 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   future
                       ? '–'
                       : spent > 0
-                          ? _shortMoney(spent)
-                          : '–',
+                      ? _shortMoney(spent)
+                      : '–',
                   style: _title(
                     9,
                     color: selected
                         ? AppColors.onPrimary
                         : future
-                            ? AppColors.textSecondary
-                                .withValues(alpha: 0.3)
-                            : spent > 0
-                                ? color
-                                : AppColors.textSecondary,
+                        ? AppColors.textSecondary.withValues(alpha: 0.3)
+                        : spent > 0
+                        ? color
+                        : AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -406,12 +350,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         children: [
           Row(
             children: [
-              Expanded(
-                child: Text(
-                  'DAILY HEATMAP',
-                  style: _title(13),
-                ),
-              ),
+              Expanded(child: Text('DAILY HEATMAP', style: _title(13))),
               const Icon(
                 Icons.touch_app_outlined,
                 color: AppColors.primary,
@@ -432,17 +371,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           const SizedBox(height: 22),
           Row(
             children: [
-              for (final weekday in [
-                'M', 'T', 'W', 'T', 'F', 'S', 'S'
-              ])
+              for (final weekday in ['M', 'T', 'W', 'T', 'F', 'S', 'S'])
                 Expanded(
                   child: Center(
                     child: Text(
                       weekday,
-                      style: _title(
-                        11,
-                        color: AppColors.textSecondary,
-                      ),
+                      style: _title(11, color: AppColors.textSecondary),
                     ),
                   ),
                 ),
@@ -501,9 +435,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       body: SafeArea(
         child: asyncData.when(
           loading: () => const Center(
-            child: CircularProgressIndicator(
-              color: AppColors.primary,
-            ),
+            child: CircularProgressIndicator(color: AppColors.primary),
           ),
           error: (error, stack) => Center(
             child: Text(
@@ -514,8 +446,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           ),
           data: (data) {
             final grouped = _groupTransactions(data.historyTxns);
-            final selectedTransactions =
-                grouped[_selectedDate] ?? <TodayTxn>[];
+            final selectedTransactions = grouped[_selectedDate] ?? <TodayTxn>[];
 
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 115),
@@ -550,8 +481,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 DayDetailSheet(
                   date: _selectedDate,
                   transactions: selectedTransactions,
-                  dailyBudgetPaise:
-                      data.budget.dailyBudgetPaise,
+                  dailyBudgetPaise: data.budget.dailyBudgetPaise,
                 ),
                 const SizedBox(height: 18),
                 Center(

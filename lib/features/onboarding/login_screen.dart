@@ -18,9 +18,15 @@ class LoginScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('No account needed — your data stays on this phone.', textAlign: TextAlign.center),
+              const Text(
+                'No account needed — your data stays on this phone.',
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 16),
-              FilledButton(onPressed: () => context.go('/onboarding'), child: const Text('Get started')),
+              FilledButton(
+                onPressed: () => context.go('/onboarding'),
+                child: const Text('Get started'),
+              ),
             ],
           ),
         ),

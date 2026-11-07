@@ -127,7 +127,10 @@ class _ModeChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: AppColors.border),
       ),
-      child: Text(label, style: AppTextStyles.labelSmall.copyWith(fontSize: 10)),
+      child: Text(
+        label,
+        style: AppTextStyles.labelSmall.copyWith(fontSize: 10),
+      ),
     );
   }
 }

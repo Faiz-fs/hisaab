@@ -1,10 +1,6 @@
 import 'package:drift/drift.dart';
 
 /// Bank account table.
-/// [id] – UUID primary key.
-/// [bankName] – e.g. "HDFC", "SBI".
-/// [last4] – last 4 digits of the account/card.
-/// [balance] – current known balance in paise (integer to avoid float errors).
 class Accounts extends Table {
   TextColumn get id => text()();
   TextColumn get bankName => text()();
@@ -16,18 +12,9 @@ class Accounts extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-/// Transaction table.
-/// Raw SMS text is NEVER stored here – only parsed, hashed fields.
-/// [id] – SHA-256 hash for deduplication.
-/// [accountId] – FK → Accounts.id.
-/// [amount] – in paise.
-/// [direction] – "debit" | "credit".
-/// [mode] – PayMode enum string.
-/// [payee] – merchant/payee name (null if unknown).
-/// [category] – categorised merchant bucket.
-/// [refNo] – reference number from SMS.
-/// [balanceAfter] – in paise.
-/// [at] – transaction timestamp.
+/// Transaction table. Raw SMS text is NEVER stored here.
+/// [kind]           spend | family | savings | emi | income | internal | refund
+/// [categorySource] auto (rule/parser) | user (set manually, never overwritten)
 class Txns extends Table {
   TextColumn get id => text()();
   TextColumn get accountId => text()();
@@ -39,28 +26,23 @@ class Txns extends Table {
   TextColumn get refNo => text().nullable()();
   IntColumn get balanceAfter => integer().nullable()();
   DateTimeColumn get at => dateTime()();
+  TextColumn get kind => text().withDefault(const Constant('spend'))();
+  TextColumn get categorySource => text().withDefault(const Constant('auto'))();
 
   @override
   Set<Column> get primaryKey => {id};
 }
 
-/// Payee rules table for custom categorisation overrides.
-/// [pattern] – substring or regex to match merchant strings.
-/// [category] – the category to assign.
+/// Payee rules: pattern -> category + kind.
 class PayeeRules extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get pattern => text()();
   TextColumn get category => text()();
   BoolColumn get isRegex => boolean().withDefault(const Constant(false))();
+  TextColumn get kind => text().withDefault(const Constant('spend'))();
 }
 
-/// Daily verdict summaries.
-/// One row per calendar day per account context.
-/// [date] – day (stored as midnight UTC).
-/// [rating] – 0–10 score.
-/// [totalSpent] – in paise.
-/// [topCulprits] – JSON array of category strings.
-/// [verdictJson] – full serialised DailyVerdict model.
+/// Daily verdict table.
 class DailyVerdicts extends Table {
   IntColumn get id => integer().autoIncrement()();
   DateTimeColumn get date => dateTime()();
@@ -70,5 +52,7 @@ class DailyVerdicts extends Table {
   TextColumn get verdictJson => text()();
 
   @override
-  List<Set<Column>> get uniqueKeys => [{date}];
+  List<Set<Column>> get uniqueKeys => [
+    {date},
+  ];
 }

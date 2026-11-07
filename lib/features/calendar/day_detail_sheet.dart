@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -77,10 +76,10 @@ class DayDetailSheet extends StatelessWidget {
     final statusColor = !hasData
         ? AppColors.textSecondary
         : difference < 0
-            ? AppColors.red
-            : spent >= dailyBudgetPaise * 0.8
-                ? AppColors.amber
-                : AppColors.mint;
+        ? AppColors.red
+        : spent >= dailyBudgetPaise * 0.8
+        ? AppColors.amber
+        : AppColors.mint;
 
     return Container(
       width: double.infinity,
@@ -102,10 +101,7 @@ class DayDetailSheet extends StatelessWidget {
                   children: [
                     Text(
                       'ACTIVE SELECTION',
-                      style: _title(
-                        11,
-                        color: AppColors.textSecondary,
-                      ),
+                      style: _title(11, color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 5),
                     Text(
@@ -118,10 +114,7 @@ class DayDetailSheet extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    _money(spent),
-                    style: _title(22, color: statusColor),
-                  ),
+                  Text(_money(spent), style: _title(22, color: statusColor)),
                   const SizedBox(height: 5),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -136,8 +129,8 @@ class DayDetailSheet extends StatelessWidget {
                       !hasData
                           ? 'No data'
                           : difference < 0
-                              ? 'Over by ${_money(-difference)}'
-                              : '${_money(difference)} left',
+                          ? 'Over by ${_money(-difference)}'
+                          : '${_money(difference)} left',
                       style: _title(10, color: statusColor),
                     ),
                   ),
@@ -167,10 +160,7 @@ class DayDetailSheet extends StatelessWidget {
                 Expanded(
                   child: Text(
                     _verdict(spent),
-                    style: _body(
-                      13,
-                      color: AppColors.textPrimary,
-                    ),
+                    style: _body(13, color: AppColors.textPrimary),
                   ),
                 ),
               ],
@@ -179,25 +169,16 @@ class DayDetailSheet extends StatelessWidget {
           const SizedBox(height: 24),
           Row(
             children: [
-              Text(
-                'TOP 3 SPENDS',
-                style: _title(12),
-              ),
+              Text('TOP 3 SPENDS', style: _title(12)),
               const Spacer(),
-              Text(
-                '${transactions.length} items tracked',
-                style: _body(11),
-              ),
+              Text('${transactions.length} items tracked', style: _body(11)),
             ],
           ),
           const SizedBox(height: 12),
           if (sorted.isEmpty)
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(
-                vertical: 26,
-                horizontal: 12,
-              ),
+              padding: const EdgeInsets.symmetric(vertical: 26, horizontal: 12),
               decoration: BoxDecoration(
                 color: AppColors.background,
                 borderRadius: BorderRadius.circular(14),
@@ -210,15 +191,9 @@ class DayDetailSheet extends StatelessWidget {
                     size: 30,
                   ),
                   const SizedBox(height: 10),
-                  Text(
-                    'No transactions recorded',
-                    style: _title(13),
-                  ),
+                  Text('No transactions recorded', style: _title(13)),
                   const SizedBox(height: 5),
-                  Text(
-                    'Tracked spending will appear here.',
-                    style: _body(11),
-                  ),
+                  Text('Tracked spending will appear here.', style: _body(11)),
                 ],
               ),
             )
@@ -246,10 +221,7 @@ class DayDetailSheet extends StatelessWidget {
                   children: [
                     Text(
                       'View Night Verdict',
-                      style: _title(
-                        14,
-                        color: AppColors.onPrimary,
-                      ),
+                      style: _title(14, color: AppColors.onPrimary),
                     ),
                     const SizedBox(width: 10),
                     const Icon(Icons.arrow_forward, size: 19),
@@ -279,11 +251,7 @@ class DayDetailSheet extends StatelessWidget {
               color: AppColors.nested,
               borderRadius: BorderRadius.circular(13),
             ),
-            child: Icon(
-              txn.icon,
-              color: txn.color,
-              size: 21,
-            ),
+            child: Icon(txn.icon, color: txn.color, size: 21),
           ),
           const SizedBox(width: 11),
           Expanded(
@@ -311,15 +279,9 @@ class DayDetailSheet extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                '− ${_money(txn.amountPaise)}',
-                style: _title(13),
-              ),
+              Text('− ${_money(txn.amountPaise)}', style: _title(13)),
               const SizedBox(height: 4),
-              Text(
-                txn.mode,
-                style: _body(10),
-              ),
+              Text(txn.mode, style: _body(10)),
             ],
           ),
         ],

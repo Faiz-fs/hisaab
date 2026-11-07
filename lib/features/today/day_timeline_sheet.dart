@@ -66,11 +66,19 @@ class DayTimelineSheet extends StatelessWidget {
             Row(
               children: [
                 Text('Budget ', style: AppTextStyles.bodyMedium),
-                MoneyText(budget,
-                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary)),
+                MoneyText(
+                  budget,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
                 Text('  |  Spent ', style: AppTextStyles.bodyMedium),
-                MoneyText(data.budget.spentTodayPaise / 100,
-                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary)),
+                MoneyText(
+                  data.budget.spentTodayPaise / 100,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -97,7 +105,11 @@ class _TimelineRow extends StatelessWidget {
   final double running;
   final double pct;
 
-  const _TimelineRow({required this.txn, required this.running, required this.pct});
+  const _TimelineRow({
+    required this.txn,
+    required this.running,
+    required this.pct,
+  });
 
   @override
   Widget build(BuildContext context) {

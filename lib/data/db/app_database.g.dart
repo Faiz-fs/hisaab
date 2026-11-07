@@ -467,6 +467,28 @@ class $TxnsTable extends Txns with TableInfo<$TxnsTable, Txn> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('spend'),
+  );
+  static const VerificationMeta _categorySourceMeta = const VerificationMeta(
+    'categorySource',
+  );
+  @override
+  late final GeneratedColumn<String> categorySource = GeneratedColumn<String>(
+    'category_source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('auto'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -479,6 +501,8 @@ class $TxnsTable extends Txns with TableInfo<$TxnsTable, Txn> {
     refNo,
     balanceAfter,
     at,
+    kind,
+    categorySource,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -561,6 +585,21 @@ class $TxnsTable extends Txns with TableInfo<$TxnsTable, Txn> {
     } else if (isInserting) {
       context.missing(_atMeta);
     }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    }
+    if (data.containsKey('category_source')) {
+      context.handle(
+        _categorySourceMeta,
+        categorySource.isAcceptableOrUnknown(
+          data['category_source']!,
+          _categorySourceMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -610,6 +649,14 @@ class $TxnsTable extends Txns with TableInfo<$TxnsTable, Txn> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}at'],
       )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      categorySource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_source'],
+      )!,
     );
   }
 
@@ -630,6 +677,8 @@ class Txn extends DataClass implements Insertable<Txn> {
   final String? refNo;
   final int? balanceAfter;
   final DateTime at;
+  final String kind;
+  final String categorySource;
   const Txn({
     required this.id,
     required this.accountId,
@@ -641,6 +690,8 @@ class Txn extends DataClass implements Insertable<Txn> {
     this.refNo,
     this.balanceAfter,
     required this.at,
+    required this.kind,
+    required this.categorySource,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -663,6 +714,8 @@ class Txn extends DataClass implements Insertable<Txn> {
       map['balance_after'] = Variable<int>(balanceAfter);
     }
     map['at'] = Variable<DateTime>(at);
+    map['kind'] = Variable<String>(kind);
+    map['category_source'] = Variable<String>(categorySource);
     return map;
   }
 
@@ -686,6 +739,8 @@ class Txn extends DataClass implements Insertable<Txn> {
           ? const Value.absent()
           : Value(balanceAfter),
       at: Value(at),
+      kind: Value(kind),
+      categorySource: Value(categorySource),
     );
   }
 
@@ -705,6 +760,8 @@ class Txn extends DataClass implements Insertable<Txn> {
       refNo: serializer.fromJson<String?>(json['refNo']),
       balanceAfter: serializer.fromJson<int?>(json['balanceAfter']),
       at: serializer.fromJson<DateTime>(json['at']),
+      kind: serializer.fromJson<String>(json['kind']),
+      categorySource: serializer.fromJson<String>(json['categorySource']),
     );
   }
   @override
@@ -721,6 +778,8 @@ class Txn extends DataClass implements Insertable<Txn> {
       'refNo': serializer.toJson<String?>(refNo),
       'balanceAfter': serializer.toJson<int?>(balanceAfter),
       'at': serializer.toJson<DateTime>(at),
+      'kind': serializer.toJson<String>(kind),
+      'categorySource': serializer.toJson<String>(categorySource),
     };
   }
 
@@ -735,6 +794,8 @@ class Txn extends DataClass implements Insertable<Txn> {
     Value<String?> refNo = const Value.absent(),
     Value<int?> balanceAfter = const Value.absent(),
     DateTime? at,
+    String? kind,
+    String? categorySource,
   }) => Txn(
     id: id ?? this.id,
     accountId: accountId ?? this.accountId,
@@ -746,6 +807,8 @@ class Txn extends DataClass implements Insertable<Txn> {
     refNo: refNo.present ? refNo.value : this.refNo,
     balanceAfter: balanceAfter.present ? balanceAfter.value : this.balanceAfter,
     at: at ?? this.at,
+    kind: kind ?? this.kind,
+    categorySource: categorySource ?? this.categorySource,
   );
   Txn copyWithCompanion(TxnsCompanion data) {
     return Txn(
@@ -761,6 +824,10 @@ class Txn extends DataClass implements Insertable<Txn> {
           ? data.balanceAfter.value
           : this.balanceAfter,
       at: data.at.present ? data.at.value : this.at,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      categorySource: data.categorySource.present
+          ? data.categorySource.value
+          : this.categorySource,
     );
   }
 
@@ -776,7 +843,9 @@ class Txn extends DataClass implements Insertable<Txn> {
           ..write('category: $category, ')
           ..write('refNo: $refNo, ')
           ..write('balanceAfter: $balanceAfter, ')
-          ..write('at: $at')
+          ..write('at: $at, ')
+          ..write('kind: $kind, ')
+          ..write('categorySource: $categorySource')
           ..write(')'))
         .toString();
   }
@@ -793,6 +862,8 @@ class Txn extends DataClass implements Insertable<Txn> {
     refNo,
     balanceAfter,
     at,
+    kind,
+    categorySource,
   );
   @override
   bool operator ==(Object other) =>
@@ -807,7 +878,9 @@ class Txn extends DataClass implements Insertable<Txn> {
           other.category == this.category &&
           other.refNo == this.refNo &&
           other.balanceAfter == this.balanceAfter &&
-          other.at == this.at);
+          other.at == this.at &&
+          other.kind == this.kind &&
+          other.categorySource == this.categorySource);
 }
 
 class TxnsCompanion extends UpdateCompanion<Txn> {
@@ -821,6 +894,8 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
   final Value<String?> refNo;
   final Value<int?> balanceAfter;
   final Value<DateTime> at;
+  final Value<String> kind;
+  final Value<String> categorySource;
   final Value<int> rowid;
   const TxnsCompanion({
     this.id = const Value.absent(),
@@ -833,6 +908,8 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
     this.refNo = const Value.absent(),
     this.balanceAfter = const Value.absent(),
     this.at = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.categorySource = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TxnsCompanion.insert({
@@ -846,6 +923,8 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
     this.refNo = const Value.absent(),
     this.balanceAfter = const Value.absent(),
     required DateTime at,
+    this.kind = const Value.absent(),
+    this.categorySource = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        accountId = Value(accountId),
@@ -864,6 +943,8 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
     Expression<String>? refNo,
     Expression<int>? balanceAfter,
     Expression<DateTime>? at,
+    Expression<String>? kind,
+    Expression<String>? categorySource,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -877,6 +958,8 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
       if (refNo != null) 'ref_no': refNo,
       if (balanceAfter != null) 'balance_after': balanceAfter,
       if (at != null) 'at': at,
+      if (kind != null) 'kind': kind,
+      if (categorySource != null) 'category_source': categorySource,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -892,6 +975,8 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
     Value<String?>? refNo,
     Value<int?>? balanceAfter,
     Value<DateTime>? at,
+    Value<String>? kind,
+    Value<String>? categorySource,
     Value<int>? rowid,
   }) {
     return TxnsCompanion(
@@ -905,6 +990,8 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
       refNo: refNo ?? this.refNo,
       balanceAfter: balanceAfter ?? this.balanceAfter,
       at: at ?? this.at,
+      kind: kind ?? this.kind,
+      categorySource: categorySource ?? this.categorySource,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -942,6 +1029,12 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
     if (at.present) {
       map['at'] = Variable<DateTime>(at.value);
     }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (categorySource.present) {
+      map['category_source'] = Variable<String>(categorySource.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -961,6 +1054,8 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
           ..write('refNo: $refNo, ')
           ..write('balanceAfter: $balanceAfter, ')
           ..write('at: $at, ')
+          ..write('kind: $kind, ')
+          ..write('categorySource: $categorySource, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1023,8 +1118,18 @@ class $PayeeRulesTable extends PayeeRules
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
   @override
-  List<GeneratedColumn> get $columns => [id, pattern, category, isRegex];
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('spend'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, pattern, category, isRegex, kind];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1062,6 +1167,12 @@ class $PayeeRulesTable extends PayeeRules
         isRegex.isAcceptableOrUnknown(data['is_regex']!, _isRegexMeta),
       );
     }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    }
     return context;
   }
 
@@ -1087,6 +1198,10 @@ class $PayeeRulesTable extends PayeeRules
         DriftSqlType.bool,
         data['${effectivePrefix}is_regex'],
       )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
     );
   }
 
@@ -1101,11 +1216,13 @@ class PayeeRule extends DataClass implements Insertable<PayeeRule> {
   final String pattern;
   final String category;
   final bool isRegex;
+  final String kind;
   const PayeeRule({
     required this.id,
     required this.pattern,
     required this.category,
     required this.isRegex,
+    required this.kind,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1114,6 +1231,7 @@ class PayeeRule extends DataClass implements Insertable<PayeeRule> {
     map['pattern'] = Variable<String>(pattern);
     map['category'] = Variable<String>(category);
     map['is_regex'] = Variable<bool>(isRegex);
+    map['kind'] = Variable<String>(kind);
     return map;
   }
 
@@ -1123,6 +1241,7 @@ class PayeeRule extends DataClass implements Insertable<PayeeRule> {
       pattern: Value(pattern),
       category: Value(category),
       isRegex: Value(isRegex),
+      kind: Value(kind),
     );
   }
 
@@ -1136,6 +1255,7 @@ class PayeeRule extends DataClass implements Insertable<PayeeRule> {
       pattern: serializer.fromJson<String>(json['pattern']),
       category: serializer.fromJson<String>(json['category']),
       isRegex: serializer.fromJson<bool>(json['isRegex']),
+      kind: serializer.fromJson<String>(json['kind']),
     );
   }
   @override
@@ -1146,6 +1266,7 @@ class PayeeRule extends DataClass implements Insertable<PayeeRule> {
       'pattern': serializer.toJson<String>(pattern),
       'category': serializer.toJson<String>(category),
       'isRegex': serializer.toJson<bool>(isRegex),
+      'kind': serializer.toJson<String>(kind),
     };
   }
 
@@ -1154,11 +1275,13 @@ class PayeeRule extends DataClass implements Insertable<PayeeRule> {
     String? pattern,
     String? category,
     bool? isRegex,
+    String? kind,
   }) => PayeeRule(
     id: id ?? this.id,
     pattern: pattern ?? this.pattern,
     category: category ?? this.category,
     isRegex: isRegex ?? this.isRegex,
+    kind: kind ?? this.kind,
   );
   PayeeRule copyWithCompanion(PayeeRulesCompanion data) {
     return PayeeRule(
@@ -1166,6 +1289,7 @@ class PayeeRule extends DataClass implements Insertable<PayeeRule> {
       pattern: data.pattern.present ? data.pattern.value : this.pattern,
       category: data.category.present ? data.category.value : this.category,
       isRegex: data.isRegex.present ? data.isRegex.value : this.isRegex,
+      kind: data.kind.present ? data.kind.value : this.kind,
     );
   }
 
@@ -1175,13 +1299,14 @@ class PayeeRule extends DataClass implements Insertable<PayeeRule> {
           ..write('id: $id, ')
           ..write('pattern: $pattern, ')
           ..write('category: $category, ')
-          ..write('isRegex: $isRegex')
+          ..write('isRegex: $isRegex, ')
+          ..write('kind: $kind')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, pattern, category, isRegex);
+  int get hashCode => Object.hash(id, pattern, category, isRegex, kind);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1189,7 +1314,8 @@ class PayeeRule extends DataClass implements Insertable<PayeeRule> {
           other.id == this.id &&
           other.pattern == this.pattern &&
           other.category == this.category &&
-          other.isRegex == this.isRegex);
+          other.isRegex == this.isRegex &&
+          other.kind == this.kind);
 }
 
 class PayeeRulesCompanion extends UpdateCompanion<PayeeRule> {
@@ -1197,17 +1323,20 @@ class PayeeRulesCompanion extends UpdateCompanion<PayeeRule> {
   final Value<String> pattern;
   final Value<String> category;
   final Value<bool> isRegex;
+  final Value<String> kind;
   const PayeeRulesCompanion({
     this.id = const Value.absent(),
     this.pattern = const Value.absent(),
     this.category = const Value.absent(),
     this.isRegex = const Value.absent(),
+    this.kind = const Value.absent(),
   });
   PayeeRulesCompanion.insert({
     this.id = const Value.absent(),
     required String pattern,
     required String category,
     this.isRegex = const Value.absent(),
+    this.kind = const Value.absent(),
   }) : pattern = Value(pattern),
        category = Value(category);
   static Insertable<PayeeRule> custom({
@@ -1215,12 +1344,14 @@ class PayeeRulesCompanion extends UpdateCompanion<PayeeRule> {
     Expression<String>? pattern,
     Expression<String>? category,
     Expression<bool>? isRegex,
+    Expression<String>? kind,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (pattern != null) 'pattern': pattern,
       if (category != null) 'category': category,
       if (isRegex != null) 'is_regex': isRegex,
+      if (kind != null) 'kind': kind,
     });
   }
 
@@ -1229,12 +1360,14 @@ class PayeeRulesCompanion extends UpdateCompanion<PayeeRule> {
     Value<String>? pattern,
     Value<String>? category,
     Value<bool>? isRegex,
+    Value<String>? kind,
   }) {
     return PayeeRulesCompanion(
       id: id ?? this.id,
       pattern: pattern ?? this.pattern,
       category: category ?? this.category,
       isRegex: isRegex ?? this.isRegex,
+      kind: kind ?? this.kind,
     );
   }
 
@@ -1253,6 +1386,9 @@ class PayeeRulesCompanion extends UpdateCompanion<PayeeRule> {
     if (isRegex.present) {
       map['is_regex'] = Variable<bool>(isRegex.value);
     }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
     return map;
   }
 
@@ -1262,7 +1398,8 @@ class PayeeRulesCompanion extends UpdateCompanion<PayeeRule> {
           ..write('id: $id, ')
           ..write('pattern: $pattern, ')
           ..write('category: $category, ')
-          ..write('isRegex: $isRegex')
+          ..write('isRegex: $isRegex, ')
+          ..write('kind: $kind')
           ..write(')'))
         .toString();
   }
@@ -1413,6 +1550,10 @@ class $DailyVerdictsTable extends DailyVerdicts
 
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {date},
+  ];
   @override
   DailyVerdict map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
@@ -1911,6 +2052,8 @@ typedef $$TxnsTableCreateCompanionBuilder = TxnsCompanion Function({
   Value<String?> refNo,
   Value<int?> balanceAfter,
   required DateTime at,
+  Value<String> kind,
+  Value<String> categorySource,
   Value<int> rowid,
 });
 typedef $$TxnsTableUpdateCompanionBuilder = TxnsCompanion Function({
@@ -1924,6 +2067,8 @@ typedef $$TxnsTableUpdateCompanionBuilder = TxnsCompanion Function({
   Value<String?> refNo,
   Value<int?> balanceAfter,
   Value<DateTime> at,
+  Value<String> kind,
+  Value<String> categorySource,
   Value<int> rowid,
 });
 
@@ -1982,6 +2127,16 @@ class $$TxnsTableFilterComposer extends Composer<_$AppDatabase, $TxnsTable> {
 
   ColumnFilters<DateTime> get at => $composableBuilder(
     column: $table.at,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categorySource => $composableBuilder(
+    column: $table.categorySource,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2043,6 +2198,16 @@ class $$TxnsTableOrderingComposer extends Composer<_$AppDatabase, $TxnsTable> {
     column: $table.at,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get categorySource => $composableBuilder(
+    column: $table.categorySource,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TxnsTableAnnotationComposer
@@ -2085,6 +2250,14 @@ class $$TxnsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get at =>
       $composableBuilder(column: $table.at, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get categorySource => $composableBuilder(
+    column: $table.categorySource,
+    builder: (column) => column,
+  );
 }
 
 class $$TxnsTableTableManager
@@ -2125,6 +2298,8 @@ class $$TxnsTableTableManager
                 Value<String?> refNo = const Value.absent(),
                 Value<int?> balanceAfter = const Value.absent(),
                 Value<DateTime> at = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> categorySource = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TxnsCompanion(
                 id: id,
@@ -2137,6 +2312,8 @@ class $$TxnsTableTableManager
                 refNo: refNo,
                 balanceAfter: balanceAfter,
                 at: at,
+                kind: kind,
+                categorySource: categorySource,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2151,6 +2328,8 @@ class $$TxnsTableTableManager
                 Value<String?> refNo = const Value.absent(),
                 Value<int?> balanceAfter = const Value.absent(),
                 required DateTime at,
+                Value<String> kind = const Value.absent(),
+                Value<String> categorySource = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TxnsCompanion.insert(
                 id: id,
@@ -2163,6 +2342,8 @@ class $$TxnsTableTableManager
                 refNo: refNo,
                 balanceAfter: balanceAfter,
                 at: at,
+                kind: kind,
+                categorySource: categorySource,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -2197,12 +2378,14 @@ typedef $$PayeeRulesTableCreateCompanionBuilder = PayeeRulesCompanion Function({
   required String pattern,
   required String category,
   Value<bool> isRegex,
+  Value<String> kind,
 });
 typedef $$PayeeRulesTableUpdateCompanionBuilder = PayeeRulesCompanion Function({
   Value<int> id,
   Value<String> pattern,
   Value<String> category,
   Value<bool> isRegex,
+  Value<String> kind,
 });
 
 class $$PayeeRulesTableFilterComposer
@@ -2231,6 +2414,11 @@ class $$PayeeRulesTableFilterComposer
 
   ColumnFilters<bool> get isRegex => $composableBuilder(
     column: $table.isRegex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2263,6 +2451,11 @@ class $$PayeeRulesTableOrderingComposer
     column: $table.isRegex,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$PayeeRulesTableAnnotationComposer
@@ -2285,6 +2478,9 @@ class $$PayeeRulesTableAnnotationComposer
 
   GeneratedColumn<bool> get isRegex =>
       $composableBuilder(column: $table.isRegex, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
 }
 
 class $$PayeeRulesTableTableManager
@@ -2322,11 +2518,13 @@ class $$PayeeRulesTableTableManager
                 Value<String> pattern = const Value.absent(),
                 Value<String> category = const Value.absent(),
                 Value<bool> isRegex = const Value.absent(),
+                Value<String> kind = const Value.absent(),
               }) => PayeeRulesCompanion(
                 id: id,
                 pattern: pattern,
                 category: category,
                 isRegex: isRegex,
+                kind: kind,
               ),
           createCompanionCallback:
               ({
@@ -2334,11 +2532,13 @@ class $$PayeeRulesTableTableManager
                 required String pattern,
                 required String category,
                 Value<bool> isRegex = const Value.absent(),
+                Value<String> kind = const Value.absent(),
               }) => PayeeRulesCompanion.insert(
                 id: id,
                 pattern: pattern,
                 category: category,
                 isRegex: isRegex,
+                kind: kind,
               ),
           withReferenceMapper: (p0) => p0
               .map(

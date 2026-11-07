@@ -13,7 +13,7 @@ class SmsChannel {
   /// Stream of raw SMS events from the native receiver.
   static Stream<Map<String, dynamic>> get smsStream {
     return _eventChannel.receiveBroadcastStream().map(
-          (event) => Map<String, dynamic>.from(event as Map),
-        );
+      (event) => Map<String, dynamic>.from(event as Map),
+    );
   }
 }

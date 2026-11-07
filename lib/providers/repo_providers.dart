@@ -38,5 +38,9 @@ final accountsProvider = FutureProvider<List<AccountModel>>((ref) {
 
 // ── Transactions & verdicts ───────────────────────────────────
 
-final txnRepoProvider = Provider<TxnRepo>((ref) => DriftTxnRepo(ref.watch(dbProvider)));
-final verdictRepoProvider = Provider<VerdictRepo>((ref) => DriftVerdictRepo(ref.watch(dbProvider)));
+final txnRepoProvider = Provider<TxnRepo>(
+  (ref) => DriftTxnRepo(ref.watch(dbProvider)),
+);
+final verdictRepoProvider = Provider<VerdictRepo>(
+  (ref) => DriftVerdictRepo(ref.watch(dbProvider)),
+);

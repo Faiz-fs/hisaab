@@ -14,9 +14,5 @@ Future<void> main() async {
   // Morning (08:00) and night-verdict (23:45) background jobs.
   await BackgroundTasks.init();
 
-  runApp(
-    const ProviderScope(
-      child: HisaabApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: HisaabApp()));
 }

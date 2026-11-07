@@ -12,13 +12,15 @@ class HisaabApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return SmsTrackingController(child: MaterialApp.router(
-      title: 'Hisaab',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark(),
-      darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.dark,
-      routerConfig: appRouter,
-    ));
+    return SmsTrackingController(
+      child: MaterialApp.router(
+        title: 'Hisaab',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.dark(),
+        darkTheme: AppTheme.dark(),
+        themeMode: ThemeMode.dark,
+        routerConfig: appRouter,
+      ),
+    );
   }
 }

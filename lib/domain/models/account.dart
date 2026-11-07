@@ -3,6 +3,7 @@ class AccountModel {
   final String id;
   final String bankName;
   final String last4;
+
   /// Balance in paise.
   final int balancePaise;
   final DateTime updatedAt;

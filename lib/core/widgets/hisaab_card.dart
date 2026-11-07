@@ -9,12 +9,7 @@ class HisaabCard extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final VoidCallback? onTap;
 
-  const HisaabCard({
-    super.key,
-    required this.child,
-    this.padding,
-    this.onTap,
-  });
+  const HisaabCard({super.key, required this.child, this.padding, this.onTap});
 
   @override
   Widget build(BuildContext context) {

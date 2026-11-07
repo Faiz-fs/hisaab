@@ -27,8 +27,14 @@ class BalanceMismatchDialog extends ConsumerWidget {
         'Update to the bank balance?',
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Keep mine')),
-        TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Use bank balance')),
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Keep mine'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('Use bank balance'),
+        ),
       ],
     );
   }

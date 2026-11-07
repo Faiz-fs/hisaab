@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:crypto/crypto.dart';
 
 /// Computes a deterministic deduplication ID for a parsed SMS transaction.
@@ -13,8 +14,13 @@ String computeDedupeId({
   required DateTime at,
 }) {
   // Truncate timestamp to minute precision to absorb minor delivery jitter.
-  final ts = DateTime(at.year, at.month, at.day, at.hour, at.minute)
-      .millisecondsSinceEpoch;
+  final ts = DateTime(
+    at.year,
+    at.month,
+    at.day,
+    at.hour,
+    at.minute,
+  ).millisecondsSinceEpoch;
 
   final raw = '$bank|$last4|${refNo ?? ""}|$amountPaise|$ts';
   final bytes = utf8.encode(raw);

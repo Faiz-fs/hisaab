@@ -18,7 +18,7 @@ class VerdictEngine {
     required List<TxnModel> txns,
     required int dailyBudgetPaise,
   }) {
-    final debits = txns.where((t) => t.isDebit).toList();
+    final debits = txns.where((t) => t.isSpend).toList();
     final totalSpent = debits.fold<int>(0, (sum, t) => sum + t.amountPaise);
 
     // Top 3 culprit categories by spend
@@ -35,12 +35,12 @@ class VerdictEngine {
     final rating = pct <= 0.5
         ? 10
         : pct <= 0.8
-            ? 7
-            : pct <= 1.0
-                ? 5
-                : pct <= 1.2
-                    ? 3
-                    : 0;
+        ? 7
+        : pct <= 1.0
+        ? 5
+        : pct <= 1.2
+        ? 3
+        : 0;
 
     return DailyVerdictModel(
       date: date,

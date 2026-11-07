@@ -34,7 +34,10 @@ class MoneyText extends StatelessWidget {
         children: [
           if (prefix.isNotEmpty) TextSpan(text: prefix),
           if (hasSymbol)
-            TextSpan(text: '₹', style: style.copyWith(fontSize: base * 0.85)),
+            TextSpan(
+              text: '₹',
+              style: style.copyWith(fontSize: base * 0.85),
+            ),
           TextSpan(text: number),
         ],
       ),

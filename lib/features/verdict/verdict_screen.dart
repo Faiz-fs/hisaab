@@ -25,9 +25,13 @@ class VerdictScreen extends ConsumerWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.canPop() ? context.pop() : context.go('/today'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/today'),
         ),
-        title: Text('Night Verdict', style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w700)),
+        title: Text(
+          'Night Verdict',
+          style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w700),
+        ),
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -41,9 +45,13 @@ class VerdictScreen extends ConsumerWidget {
               alignment: Alignment.centerRight,
               child: TextButton.icon(
                 onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: VerdictShareCard.asText(view)));
+                  await Clipboard.setData(
+                    ClipboardData(text: VerdictShareCard.asText(view)),
+                  );
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Verdict copied')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Verdict copied')),
+                    );
                   }
                 },
                 icon: const Icon(Icons.copy, size: 16),
@@ -51,21 +59,42 @@ class VerdictScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text('TOP CULPRITS', style: GoogleFonts.inter(fontSize: 11, letterSpacing: 1.2, color: AppColors.textSecondary)),
+            Text(
+              'TOP CULPRITS',
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                letterSpacing: 1.2,
+                color: AppColors.textSecondary,
+              ),
+            ),
             const SizedBox(height: 10),
             if (view.verdict.topCulprits.isEmpty)
-              Text('Nothing spent today. Suspiciously disciplined.', style: GoogleFonts.inter(color: AppColors.textSecondary))
+              Text(
+                'Nothing spent today. Suspiciously disciplined.',
+                style: GoogleFonts.inter(color: AppColors.textSecondary),
+              )
             else
-              Wrap(spacing: 8, runSpacing: 8, children: [
-                for (final c in view.verdict.topCulprits)
-                  Chip(
-                    label: Text(c),
-                    backgroundColor: AppColors.nested,
-                    side: const BorderSide(color: AppColors.border),
-                  ),
-              ]),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final c in view.verdict.topCulprits)
+                    Chip(
+                      label: Text(c),
+                      backgroundColor: AppColors.nested,
+                      side: const BorderSide(color: AppColors.border),
+                    ),
+                ],
+              ),
             const SizedBox(height: 24),
-            Text('LAST 7 DAYS', style: GoogleFonts.inter(fontSize: 11, letterSpacing: 1.2, color: AppColors.textSecondary)),
+            Text(
+              'LAST 7 DAYS',
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                letterSpacing: 1.2,
+                color: AppColors.textSecondary,
+              ),
+            ),
             const SizedBox(height: 10),
             history.when(
               loading: () => const SizedBox.shrink(),
@@ -81,12 +110,34 @@ class VerdictScreen extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: AppColors.border),
                       ),
-                      child: Row(children: [
-                        Expanded(child: Text(DateFormat('EEE, d MMM').format(v.date), style: GoogleFonts.inter(color: AppColors.textPrimary))),
-                        Text(inr(v.totalSpentRupees), style: GoogleFonts.inter(color: AppColors.textSecondary)),
-                        const SizedBox(width: 14),
-                        Text('${v.rating}/10', style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w700, color: v.overBudget ? AppColors.red : AppColors.mint)),
-                      ]),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              DateFormat('EEE, d MMM').format(v.date),
+                              style: GoogleFonts.inter(
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            inr(v.totalSpentRupees),
+                            style: GoogleFonts.inter(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Text(
+                            '${v.rating}/10',
+                            style: GoogleFonts.spaceGrotesk(
+                              fontWeight: FontWeight.w700,
+                              color: v.overBudget
+                                  ? AppColors.red
+                                  : AppColors.mint,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                 ],
               ),

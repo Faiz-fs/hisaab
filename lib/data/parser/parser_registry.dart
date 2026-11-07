@@ -46,7 +46,8 @@ class ParserRegistry {
       payee: specific.payee ?? fallback.payee,
       refNo: specific.refNo ?? fallback.refNo,
       last4: specific.last4 ?? fallback.last4,
-      balanceAfterPaise: specific.balanceAfterPaise ?? fallback.balanceAfterPaise,
+      balanceAfterPaise:
+          specific.balanceAfterPaise ?? fallback.balanceAfterPaise,
       at: at,
     );
   }

@@ -7,7 +7,8 @@ part 'accounts_dao.g.dart';
 
 /// DAO for the [Accounts] table.
 @DriftAccessor(tables: [Accounts])
-class AccountsDao extends DatabaseAccessor<AppDatabase> with _$AccountsDaoMixin {
+class AccountsDao extends DatabaseAccessor<AppDatabase>
+    with _$AccountsDaoMixin {
   AccountsDao(super.db);
 
   /// Returns all accounts ordered by bankName.

@@ -4,9 +4,9 @@ import '../../core/format/inr_format.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repos/settings_repo.dart';
 import '../../data/repos/txn_repo.dart';
-import '../../domain/budget/daily_budget.dart';
 import '../../domain/budget/roast_copy.dart';
 import '../../domain/budget/verdict_engine.dart';
+import '../../data/repos/budget_loader.dart';
 import 'notification_service.dart';
 
 /// Workmanager background task registration.
@@ -24,16 +24,16 @@ void callbackDispatcher() {
       final settings = await SettingsRepo().load();
       final repo = DriftTxnRepo(db);
       final now = DateTime.now();
-      final budget = DailyBudget(
-        monthlyIncomePaise: settings.monthlyIncomePaise,
-        spentTodayPaise: 0,
-        date: now,
-      ).dailyBudgetPaise;
+      final budget = (await loadDailyBudget(
+        db,
+        settings,
+        now,
+      )).dailyBudgetPaise;
 
       switch (taskName) {
         case BackgroundTasks.morningTaskName:
           final yesterday = DateTime(now.year, now.month, now.day - 1);
-          final spentYesterday = await repo.totalDebitForDay(yesterday);
+          final spentYesterday = await repo.totalSpendForDay(yesterday);
           await NotificationService.instance.showMorningReminder(
             budget > 0
                 ? "Today's budget is ${inr(budget / 100)}. Yesterday you spent ${inr(spentYesterday / 100)}."
@@ -41,9 +41,17 @@ void callbackDispatcher() {
           );
         case BackgroundTasks.nightTaskName:
           final txns = await repo.getForDay(now);
-          final v = const VerdictEngine().buildVerdict(date: now, txns: txns, dailyBudgetPaise: budget);
+          final v = const VerdictEngine().buildVerdict(
+            date: now,
+            txns: txns,
+            dailyBudgetPaise: budget,
+          );
           final top = v.topCulprits.isEmpty ? 'spending' : v.topCulprits.first;
-          final roast = RoastCopy.generate(level: settings.roastLevel, category: top, overBudget: v.overBudget);
+          final roast = RoastCopy.generate(
+            level: settings.roastLevel,
+            category: top,
+            overBudget: v.overBudget,
+          );
           await NotificationService.instance.showNightVerdict(
             '${v.rating}/10 · spent ${inr(v.totalSpentRupees)}. $roast',
           );

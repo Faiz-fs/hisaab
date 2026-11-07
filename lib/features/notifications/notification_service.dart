@@ -40,9 +40,10 @@ class NotificationService {
     await _plugin.initialize(settings: initSettings);
 
     // Create notification channels (Android 8+)
-    final androidPlugin =
-        _plugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+    final androidPlugin = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     await androidPlugin?.createNotificationChannel(_channelMorning);
     await androidPlugin?.createNotificationChannel(_channelInstant);
     await androidPlugin?.createNotificationChannel(_channelNight);
@@ -63,7 +64,12 @@ class NotificationService {
       ),
     );
     // v22: show() uses named parameters
-    await _plugin.show(id: id, title: title, body: body, notificationDetails: details);
+    await _plugin.show(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: details,
+    );
   }
 
   /// Shows morning reminder notification.
@@ -85,10 +91,7 @@ class NotificationService {
   /// Shows night verdict notification.
   Future<void> showNightVerdict(String body) async {
     const details = NotificationDetails(
-      android: AndroidNotificationDetails(
-        'hisaab_night',
-        'Night Verdict',
-      ),
+      android: AndroidNotificationDetails('hisaab_night', 'Night Verdict'),
     );
     await _plugin.show(
       id: 1001,

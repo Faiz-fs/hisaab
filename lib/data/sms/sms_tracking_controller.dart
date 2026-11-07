@@ -1,7 +1,9 @@
 import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
+
 import '../../providers/db_provider.dart';
 import '../../providers/repo_providers.dart';
 import '../../features/today/today_data.dart';
@@ -15,10 +17,12 @@ class SmsTrackingController extends ConsumerStatefulWidget {
   final Widget child;
   const SmsTrackingController({super.key, required this.child});
   @override
-  ConsumerState<SmsTrackingController> createState() => _SmsTrackingControllerState();
+  ConsumerState<SmsTrackingController> createState() =>
+      _SmsTrackingControllerState();
 }
 
-class _SmsTrackingControllerState extends ConsumerState<SmsTrackingController> with WidgetsBindingObserver {
+class _SmsTrackingControllerState extends ConsumerState<SmsTrackingController>
+    with WidgetsBindingObserver {
   StreamSubscription<Map<String, dynamic>>? _subscription;
   bool _busy = false;
   @override
@@ -27,18 +31,22 @@ class _SmsTrackingControllerState extends ConsumerState<SmsTrackingController> w
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _start());
   }
+
   Future<void> _start() async {
     if (!mounted || _busy) return;
     _busy = true;
     try {
       final settings = await ref.read(settingsRepoProvider).load();
-      if (!settings.smsEnabled || !(await Permission.sms.status).isGranted) return;
+      if (!settings.smsEnabled || !(await Permission.sms.status).isGranted)
+        return;
       _subscription ??= SmsChannel.smsStream.listen((sms) async {
         try {
           final added = await SmsIngestService(ref.read(dbProvider)).ingest(
             sender: sms['sender'] as String,
             body: sms['body'] as String,
-            timestamp: DateTime.fromMillisecondsSinceEpoch((sms['timestamp'] as num).toInt()),
+            timestamp: DateTime.fromMillisecondsSinceEpoch(
+              (sms['timestamp'] as num).toInt(),
+            ),
           );
           if (added && mounted) _refresh();
         } catch (_) {}
@@ -51,21 +59,25 @@ class _SmsTrackingControllerState extends ConsumerState<SmsTrackingController> w
       _busy = false;
     }
   }
+
   void _refresh() {
     ref.invalidate(todayBudgetProvider);
     ref.invalidate(todayDataProvider);
     ref.invalidate(accountsProvider);
   }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) _start();
   }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _subscription?.cancel();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) => widget.child;
 }

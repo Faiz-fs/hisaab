@@ -18,8 +18,9 @@ class VerdictsDao extends DatabaseAccessor<AppDatabase>
   /// Returns the verdict for [date] if it exists.
   Future<DailyVerdict?> getVerdictForDay(DateTime date) {
     final day = DateTime(date.year, date.month, date.day);
-    return (select(dailyVerdicts)..where((t) => t.date.equals(day)))
-        .getSingleOrNull();
+    return (select(
+      dailyVerdicts,
+    )..where((t) => t.date.equals(day))).getSingleOrNull();
   }
 
   /// Returns the last [limit] verdicts ordered by date descending.

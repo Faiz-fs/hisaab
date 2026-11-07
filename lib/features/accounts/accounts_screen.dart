@@ -13,8 +13,14 @@ import '../../providers/repo_providers.dart';
 class AccountsScreen extends ConsumerWidget {
   const AccountsScreen({super.key});
 
-  Future<void> _editBalance(BuildContext context, WidgetRef ref, AccountModel a) async {
-    final controller = TextEditingController(text: (a.balancePaise / 100).toStringAsFixed(2));
+  Future<void> _editBalance(
+    BuildContext context,
+    WidgetRef ref,
+    AccountModel a,
+  ) async {
+    final controller = TextEditingController(
+      text: (a.balancePaise / 100).toStringAsFixed(2),
+    );
     final newPaise = await showDialog<int>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -29,17 +35,29 @@ class AccountsScreen extends ConsumerWidget {
             TextField(
               controller: controller,
               autofocus: true,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.,]'))],
-              decoration: const InputDecoration(prefixText: '₹ ', labelText: 'Current balance'),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
+              ],
+              decoration: const InputDecoration(
+                prefixText: '₹ ',
+                labelText: 'Current balance',
+              ),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () {
-              final v = double.tryParse(controller.text.replaceAll(',', '').trim());
+              final v = double.tryParse(
+                controller.text.replaceAll(',', '').trim(),
+              );
               if (v == null || v < 0 || v > 1e9) return;
               Navigator.pop(dialogContext, (v * 100).round());
             },
@@ -52,7 +70,8 @@ class AccountsScreen extends ConsumerWidget {
     await ref.read(accountRepoProvider).updateBalance(a.id, newPaise);
     ref.invalidate(accountsProvider);
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Balance updated')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Balance updated')));
     }
   }
 
@@ -76,7 +95,10 @@ class AccountsScreen extends ConsumerWidget {
                       padding: EdgeInsets.only(top: 12),
                       child: Text(
                         'Balances update from bank SMS. If one looks wrong, tap the account to correct it.',
-                        style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
                       ),
                     );
                   }
@@ -84,15 +106,24 @@ class AccountsScreen extends ConsumerWidget {
                   return Card(
                     child: ListTile(
                       onTap: () => _editBalance(context, ref, a),
-                      leading: const Icon(Icons.account_balance_outlined, color: AppColors.primary),
+                      leading: const Icon(
+                        Icons.account_balance_outlined,
+                        color: AppColors.primary,
+                      ),
                       title: Text(a.bankName),
-                      subtitle: Text('•••• ${a.last4} · Updated ${DateFormat('d MMM, h:mm a').format(a.updatedAt)}'),
+                      subtitle: Text(
+                        '•••• ${a.last4} · Updated ${DateFormat('d MMM, h:mm a').format(a.updatedAt)}',
+                      ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(inr(a.balancePaise / 100)),
                           const SizedBox(width: 8),
-                          const Icon(Icons.edit_outlined, size: 16, color: AppColors.textSecondary),
+                          const Icon(
+                            Icons.edit_outlined,
+                            size: 16,
+                            color: AppColors.textSecondary,
+                          ),
                         ],
                       ),
                     ),

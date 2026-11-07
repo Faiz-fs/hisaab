@@ -4,12 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
+
 import '../../data/sms/sms_backfill_service.dart';
 import '../../providers/db_provider.dart';
 import '../../providers/today_provider.dart';
 import '../today/today_data.dart';
 import '../accounts/balance_mismatch_dialog.dart';
 import '../../providers/repo_providers.dart';
+import '../../domain/budget/daily_budget.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../domain/models/enums.dart';
@@ -96,18 +98,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   // This prevents disposing the controller before the dialog
   // has finished leaving the Flutter widget tree.
   Future<void> _editIncome(domain.Settings settings) async {
-    final result = await showDialog<int>(
+    final result = await showDialog<List<int>>(
       context: context,
       builder: (dialogContext) {
         return _IncomeEditDialog(
           initialIncomePaise: settings.monthlyIncomePaise,
+          initialCommitmentsPaise: settings.monthlyCommitmentsPaise,
+          initialPayDay: settings.payDay,
         );
       },
     );
 
     if (!mounted || result == null) return;
 
-    await _save(settings.copyWith(monthlyIncomePaise: result));
+    await _save(
+      settings.copyWith(
+        monthlyIncomePaise: result[0],
+        monthlyCommitmentsPaise: result[1],
+        payDay: result[2],
+      ),
+    );
   }
 
   Widget _sectionTitle(String title, IconData icon) {
@@ -160,9 +170,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(settings.displayName.isEmpty ? 'Hisaab member' : settings.displayName, style: _heading(21)),
+                Text(
+                  settings.displayName.isEmpty
+                      ? 'Hisaab member'
+                      : settings.displayName,
+                  style: _heading(21),
+                ),
                 const SizedBox(height: 5),
-                Text(settings.email.isEmpty ? 'Profile stored on this device' : settings.email, style: _body(12)),
+                Text(
+                  settings.email.isEmpty
+                      ? 'Profile stored on this device'
+                      : settings.email,
+                  style: _body(12),
+                ),
                 const SizedBox(height: 7),
                 Text(
                   'ACTIVE BURNER 🔥',
@@ -183,7 +203,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Widget _incomeCard(domain.Settings settings) {
     final income = settings.monthlyIncomePaise;
-    final daily = income ~/ 30;
+    final commitments = settings.monthlyCommitmentsPaise;
+    final flexible = settings.flexiblePoolPaise;
+    final days = BudgetCycle.forDate(DateTime.now(), settings.payDay).totalDays;
+    final daily = days > 0 ? (flexible / days).round() : 0;
+
+    Widget line(String label, String value, {Color? color}) => Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: _body(12))),
+          Text(value, style: _heading(13, color: color)),
+        ],
+      ),
+    );
 
     return _panel(
       Column(
@@ -210,20 +243,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               color: AppColors.nested,
               borderRadius: BorderRadius.circular(13),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
-                  Icons.calculate_outlined,
-                  color: AppColors.primary,
-                  size: 21,
+                line('Income', _money(income)),
+                line('Monthly commitments', '- ${_money(commitments)}'),
+                line('Free to spend', _money(flexible)),
+                const Divider(height: 18, color: AppColors.border),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.calculate_outlined,
+                      color: AppColors.primary,
+                      size: 21,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '${_money(flexible)} / $days days = ${_money(daily)} / day',
+                        style: _heading(13, color: AppColors.primary),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    '${_money(income)} / 30 = '
-                    '${_money(daily)} / day',
-                    style: _heading(13, color: AppColors.primary),
-                  ),
+                const SizedBox(height: 8),
+                Text(
+                  settings.payDay == 1
+                      ? 'Cycle: calendar month'
+                      : 'Cycle starts on day ${settings.payDay} (pay day)',
+                  style: _body(11),
                 ),
               ],
             ),
@@ -444,7 +492,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final accounts = await repo.getAll();
     for (final a in accounts) {
       final seen = result.balances[a.id];
-      if (seen == null || seen.balancePaise == a.balancePaise || !seen.at.isAfter(a.updatedAt)) continue;
+      if (seen == null ||
+          seen.balancePaise == a.balancePaise ||
+          !seen.at.isAfter(a.updatedAt))
+        continue;
       if (!mounted) return;
       final use = await showDialog<bool>(
         context: context,
@@ -467,11 +518,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Automatic SMS Tracking'),
-        content: Text(granted
-            ? 'SMS access granted. Import the last 15 days of bank transactions, or manage access in Android settings.'
-            : 'SMS access is not granted. You can request it or manage access in Android Settings.'),
+        content: Text(
+          granted
+              ? 'SMS access granted. Import the last 15 days of bank transactions, or manage access in Android settings.'
+              : 'SMS access is not granted. You can request it or manage access in Android Settings.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Close')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
           TextButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
@@ -484,29 +540,40 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             },
             child: Text(granted ? 'Check access' : 'Request access'),
           ),
-          if (granted) TextButton(
+          if (granted)
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                try {
+                  final result = await SmsBackfillService(ref.read(dbProvider))
+                      .run();
+                  ref.invalidate(todayBudgetProvider);
+                  ref.invalidate(todayDataProvider);
+                  await _reconcileBalances(result);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Scanned ${result.scanned} SMS; imported ${result.imported} new transactions.${result.skippedSummary.isEmpty ? '' : ' Skipped: ${result.skippedSummary}.'}',
+                      ),
+                    ),
+                  );
+                } catch (error) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('SMS import failed: $error')),
+                  );
+                }
+              },
+              child: const Text('Rescan 15 days'),
+            ),
+          TextButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
-              try {
-                final result = await SmsBackfillService(ref.read(dbProvider)).run();
-                ref.invalidate(todayBudgetProvider);
-                ref.invalidate(todayDataProvider);
-                await _reconcileBalances(result);
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text('Scanned ${result.scanned} SMS; imported ${result.imported} new transactions.${result.skippedSummary.isEmpty ? '' : ' Skipped: ${result.skippedSummary}.'}'),
-                ));
-              } catch (error) {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('SMS import failed: $error')));
-              }
+              await openAppSettings();
             },
-            child: const Text('Rescan 15 days'),
+            child: const Text('App settings'),
           ),
-          TextButton(onPressed: () async {
-            Navigator.pop(dialogContext);
-            await openAppSettings();
-          }, child: const Text('App settings')),
         ],
       ),
     );
@@ -528,7 +595,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             title: 'Categorise Spending',
             subtitle: 'Fix uncategorised UPI & card transactions',
             onTap: () => context.push('/upi'),
-            trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+            trailing: const Icon(
+              Icons.chevron_right,
+              color: AppColors.textSecondary,
+            ),
           ),
           const Divider(color: AppColors.border),
           _settingsTile(
@@ -623,7 +693,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ),
           data: (settings) {
-
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
               children: [
@@ -690,106 +759,151 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
 class _IncomeEditDialog extends StatefulWidget {
   final int initialIncomePaise;
+  final int initialCommitmentsPaise;
+  final int initialPayDay;
 
-  const _IncomeEditDialog({required this.initialIncomePaise});
+  const _IncomeEditDialog({
+    required this.initialIncomePaise,
+    required this.initialCommitmentsPaise,
+    required this.initialPayDay,
+  });
 
   @override
   State<_IncomeEditDialog> createState() => _IncomeEditDialogState();
 }
 
 class _IncomeEditDialogState extends State<_IncomeEditDialog> {
-  late final TextEditingController _controller;
+  late final TextEditingController _income;
+  late final TextEditingController _commitments;
+  late int _payDay;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-
-    _controller = TextEditingController(
+    _income = TextEditingController(
       text: widget.initialIncomePaise == 0
           ? ''
           : (widget.initialIncomePaise ~/ 100).toString(),
     );
+    _commitments = TextEditingController(
+      text: widget.initialCommitmentsPaise == 0
+          ? ''
+          : (widget.initialCommitmentsPaise ~/ 100).toString(),
+    );
+    _payDay = widget.initialPayDay < 1
+        ? 1
+        : (widget.initialPayDay > 28 ? 28 : widget.initialPayDay);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _income.dispose();
+    _commitments.dispose();
     super.dispose();
   }
 
   void _submit() {
-    final input = _controller.text.replaceAll(',', '').trim();
+    final income = int.tryParse(_income.text.replaceAll(',', '').trim());
+    final commitText = _commitments.text.replaceAll(',', '').trim();
+    final commitments = commitText.isEmpty ? 0 : int.tryParse(commitText);
 
-    final rupees = int.tryParse(input);
-
-    if (rupees == null || rupees <= 0 || rupees > 100000000) {
-      setState(() {
-        _error = 'Enter a valid positive monthly income';
-      });
+    if (income == null || income <= 0 || income > 100000000) {
+      setState(() => _error = 'Enter a valid positive monthly income');
       return;
     }
-
-    Navigator.of(context).pop(rupees * 100);
+    if (commitments == null || commitments < 0) {
+      setState(() => _error = 'Commitments must be 0 or more');
+      return;
+    }
+    if (commitments > income) {
+      setState(() => _error = 'Commitments cannot be more than income');
+      return;
+    }
+    Navigator.of(context).pop(<int>[income * 100, commitments * 100, _payDay]);
   }
 
   @override
   Widget build(BuildContext context) {
+    final label = GoogleFonts.inter(
+      fontSize: 12,
+      color: AppColors.textSecondary,
+    );
     return AlertDialog(
       backgroundColor: AppColors.card,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: Text(
-        'Monthly Take-Home',
+        'Income & commitments',
         style: GoogleFonts.spaceGrotesk(
           fontSize: 21,
           fontWeight: FontWeight.w700,
           color: AppColors.textPrimary,
         ),
       ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Enter your monthly income in rupees.',
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              color: AppColors.textSecondary,
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _income,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                prefixText: '₹ ',
+                labelText: 'Monthly income',
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (_) {
+                if (_error != null) setState(() => _error = null);
+              },
             ),
-          ),
-          const SizedBox(height: 18),
-          TextField(
-            controller: _controller,
-            autofocus: true,
-            keyboardType: TextInputType.number,
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => _submit(),
-            style: GoogleFonts.spaceGrotesk(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+            const SizedBox(height: 14),
+            TextField(
+              controller: _commitments,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.done,
+              decoration: const InputDecoration(
+                prefixText: '₹ ',
+                labelText: 'Monthly commitments',
+                helperText: 'Family support, rent, EMI, SIP, chit...',
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (_) {
+                if (_error != null) setState(() => _error = null);
+              },
             ),
-            decoration: InputDecoration(
-              prefixText: '₹ ',
-              labelText: 'Monthly income',
-              errorText: _error,
-              border: const OutlineInputBorder(),
+            const SizedBox(height: 14),
+            DropdownButtonFormField<int>(
+              value: _payDay,
+              decoration: const InputDecoration(
+                labelText: 'Pay day (cycle starts)',
+                border: OutlineInputBorder(),
+              ),
+              items: [
+                for (var d = 1; d <= 28; d++)
+                  DropdownMenuItem(
+                    value: d,
+                    child: Text(d == 1 ? '1 (calendar month)' : 'Day $d'),
+                  ),
+              ],
+              onChanged: (v) => setState(() => _payDay = v ?? 1),
             ),
-            onChanged: (_) {
-              if (_error != null) {
-                setState(() => _error = null);
-              }
-            },
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Your daily budget = monthly income ÷ 30.',
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              color: AppColors.textSecondary,
+            if (_error != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                _error!,
+                style: GoogleFonts.inter(fontSize: 12, color: AppColors.red),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Text(
+              'Daily budget = (income − commitments) ÷ days in cycle.',
+              style: label,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -802,41 +916,83 @@ class _IncomeEditDialogState extends State<_IncomeEditDialog> {
             backgroundColor: AppColors.primary,
             foregroundColor: AppColors.onPrimary,
           ),
-          child: const Text('Save Income'),
+          child: const Text('Save'),
         ),
       ],
     );
   }
 }
 
-
 class _ProfileEditDialog extends StatefulWidget {
   final String initialName;
   final String initialEmail;
-  const _ProfileEditDialog({required this.initialName, required this.initialEmail});
+  const _ProfileEditDialog({
+    required this.initialName,
+    required this.initialEmail,
+  });
   @override
   State<_ProfileEditDialog> createState() => _ProfileEditDialogState();
 }
 
 class _ProfileEditDialogState extends State<_ProfileEditDialog> {
   final _form = GlobalKey<FormState>();
-  late final TextEditingController _name = TextEditingController(text: widget.initialName);
-  late final TextEditingController _email = TextEditingController(text: widget.initialEmail);
+  late final TextEditingController _name = TextEditingController(
+    text: widget.initialName,
+  );
+  late final TextEditingController _email = TextEditingController(
+    text: widget.initialEmail,
+  );
   @override
-  void dispose() { _name.dispose(); _email.dispose(); super.dispose(); }
+  void dispose() {
+    _name.dispose();
+    _email.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: const Text('Edit profile'),
-    content: Form(key: _form, child: Column(mainAxisSize: MainAxisSize.min, children: [
-      TextFormField(controller: _name, maxLength: 40, decoration: const InputDecoration(labelText: 'Display name'),
-        validator: (v) => (v?.trim().length ?? 0) < 2 ? 'Enter at least two characters' : null),
-      TextFormField(controller: _email, keyboardType: TextInputType.emailAddress,
-        decoration: const InputDecoration(labelText: 'Email (optional)'),
-        validator: (v) { final e = v?.trim() ?? ''; return e.isNotEmpty && !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(e) ? 'Enter a valid email' : null; }),
-    ])),
-    actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-      FilledButton(onPressed: () { if (_form.currentState?.validate() ?? false) {
-        Navigator.pop(context, [_name.text.trim(), _email.text.trim()]);
-      } }, child: const Text('Save'))],
+    content: Form(
+      key: _form,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextFormField(
+            controller: _name,
+            maxLength: 40,
+            decoration: const InputDecoration(labelText: 'Display name'),
+            validator: (v) => (v?.trim().length ?? 0) < 2
+                ? 'Enter at least two characters'
+                : null,
+          ),
+          TextFormField(
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(labelText: 'Email (optional)'),
+            validator: (v) {
+              final e = v?.trim() ?? '';
+              return e.isNotEmpty &&
+                      !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(e)
+                  ? 'Enter a valid email'
+                  : null;
+            },
+          ),
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: () {
+          if (_form.currentState?.validate() ?? false) {
+            Navigator.pop(context, [_name.text.trim(), _email.text.trim()]);
+          }
+        },
+        child: const Text('Save'),
+      ),
+    ],
   );
 }

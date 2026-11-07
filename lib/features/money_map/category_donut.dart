@@ -11,8 +11,13 @@ class CategoryDonut extends StatelessWidget {
   const CategoryDonut({super.key, this.totals = const {}});
 
   static const _palette = [
-    AppColors.primary, AppColors.mint, AppColors.amber, AppColors.red,
-    Color(0xFF7C8CFF), Color(0xFFFF8A9B), Color(0xFF5ED0FF),
+    AppColors.primary,
+    AppColors.mint,
+    AppColors.amber,
+    AppColors.red,
+    Color(0xFF7C8CFF),
+    Color(0xFFFF8A9B),
+    Color(0xFF5ED0FF),
   ];
 
   @override
@@ -20,7 +25,9 @@ class CategoryDonut extends StatelessWidget {
     return SizedBox(
       height: 200,
       child: CustomPaint(
-        painter: _DonutPainter(totals.values.toList()..sort((a, b) => b.compareTo(a))),
+        painter: _DonutPainter(
+          totals.values.toList()..sort((a, b) => b.compareTo(a)),
+        ),
         child: const SizedBox.expand(),
       ),
     );
@@ -35,7 +42,11 @@ class _DonutPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final total = values.fold<int>(0, (a, b) => a + b);
     final side = math.min(size.width, size.height);
-    final rect = Rect.fromCenter(center: size.center(Offset.zero), width: side - 20, height: side - 20);
+    final rect = Rect.fromCenter(
+      center: size.center(Offset.zero),
+      width: side - 20,
+      height: side - 20,
+    );
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 26

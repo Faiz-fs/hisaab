@@ -33,7 +33,9 @@ class StatCard extends StatelessWidget {
         children: [
           Text(
             label,
-            style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w700),
+            style: AppTextStyles.labelSmall.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

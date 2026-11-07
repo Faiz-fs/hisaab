@@ -19,7 +19,11 @@ class VerdictShareCard extends StatelessWidget {
         '"${v.roast}"';
   }
 
-  Color _ratingColor(int r) => r >= 7 ? AppColors.mint : r >= 4 ? AppColors.amber : AppColors.red;
+  Color _ratingColor(int r) => r >= 7
+      ? AppColors.mint
+      : r >= 4
+      ? AppColors.amber
+      : AppColors.red;
 
   @override
   Widget build(BuildContext context) {
@@ -35,17 +39,42 @@ class VerdictShareCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(DateFormat('EEEE, d MMM').format(d.date).toUpperCase(),
-              style: GoogleFonts.inter(fontSize: 11, letterSpacing: 1.2, color: AppColors.textSecondary)),
+          Text(
+            DateFormat('EEEE, d MMM').format(d.date).toUpperCase(),
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              letterSpacing: 1.2,
+              color: AppColors.textSecondary,
+            ),
+          ),
           const SizedBox(height: 14),
-          Text('${d.rating}/10', style: GoogleFonts.spaceGrotesk(fontSize: 56, fontWeight: FontWeight.w700, color: color)),
+          Text(
+            '${d.rating}/10',
+            style: GoogleFonts.spaceGrotesk(
+              fontSize: 56,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text('${inr(d.totalSpentRupees)} of ${inr(view.dailyBudgetPaise / 100)}',
-              style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimary)),
+          Text(
+            '${inr(d.totalSpentRupees)} of ${inr(view.dailyBudgetPaise / 100)}',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: AppColors.textPrimary,
+            ),
+          ),
           const SizedBox(height: 16),
-          Text('“${view.roast}”',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.inter(fontSize: 15, fontStyle: FontStyle.italic, height: 1.4, color: AppColors.textPrimary)),
+          Text(
+            '“${view.roast}”',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              fontSize: 15,
+              fontStyle: FontStyle.italic,
+              height: 1.4,
+              color: AppColors.textPrimary,
+            ),
+          ),
         ],
       ),
     );

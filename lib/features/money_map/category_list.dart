@@ -13,10 +13,16 @@ class CategoryList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (totals.isEmpty) {
-      return Center(child: Text('No categories yet', style: GoogleFonts.inter(color: AppColors.textSecondary)));
+      return Center(
+        child: Text(
+          'No categories yet',
+          style: GoogleFonts.inter(color: AppColors.textSecondary),
+        ),
+      );
     }
     final sum = totals.values.fold<int>(0, (a, b) => a + b);
-    final rows = totals.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final rows = totals.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
     return ListView(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -27,10 +33,20 @@ class CategoryList extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(children: [
-                  Expanded(child: Text(e.key, style: GoogleFonts.inter(color: AppColors.textPrimary))),
-                  Text(inr(e.value / 100), style: GoogleFonts.inter(color: AppColors.textSecondary)),
-                ]),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        e.key,
+                        style: GoogleFonts.inter(color: AppColors.textPrimary),
+                      ),
+                    ),
+                    Text(
+                      inr(e.value / 100),
+                      style: GoogleFonts.inter(color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 4),
                 LinearProgressIndicator(
                   value: sum == 0 ? 0 : e.value / sum,

@@ -2,12 +2,16 @@
 /// One per calendar day, summarising spend behaviour and rating.
 class DailyVerdictModel {
   final DateTime date;
+
   /// Rating 0–10 (10 = perfect).
   final int rating;
+
   /// Total spent today in paise.
   final int totalSpentPaise;
+
   /// Top 3 culprit categories.
   final List<String> topCulprits;
+
   /// Whether the user was over or under budget.
   final bool overBudget;
 

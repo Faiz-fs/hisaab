@@ -8,7 +8,9 @@ import '../db/app_database.dart';
 abstract class TxnRepo {
   Future<void> insert(TxnModel txn);
   Future<List<TxnModel>> getForDay(DateTime day);
-  Future<int> totalDebitForDay(DateTime day);
+
+  /// Real spending only (debits of kind spend).
+  Future<int> totalSpendForDay(DateTime day);
 }
 
 /// SQLite-backed [TxnRepo].
@@ -17,36 +19,41 @@ class DriftTxnRepo implements TxnRepo {
   DriftTxnRepo(this.db);
 
   static TxnModel toModel(Txn r) => TxnModel(
-        id: r.id,
-        accountId: r.accountId,
-        amountPaise: r.amount,
-        direction: r.direction == 'credit' ? Direction.credit : Direction.debit,
-        mode: PayMode.values.asNameMap()[r.mode] ?? PayMode.other,
-        payee: r.payee,
-        category: r.category,
-        refNo: r.refNo,
-        balanceAfterPaise: r.balanceAfter,
-        at: r.at,
-      );
+    id: r.id,
+    accountId: r.accountId,
+    amountPaise: r.amount,
+    direction: r.direction == 'credit' ? Direction.credit : Direction.debit,
+    mode: PayMode.values.asNameMap()[r.mode] ?? PayMode.other,
+    payee: r.payee,
+    category: r.category,
+    refNo: r.refNo,
+    balanceAfterPaise: r.balanceAfter,
+    at: r.at,
+    kind: TxnKind.values.asNameMap()[r.kind] ?? TxnKind.spend,
+  );
 
   @override
-  Future<void> insert(TxnModel t) => db.txnsDao.insertTxn(TxnsCompanion.insert(
-        id: t.id,
-        accountId: t.accountId,
-        amount: t.amountPaise,
-        direction: t.direction.name,
-        mode: t.mode.name,
-        payee: drift.Value(t.payee),
-        category: drift.Value(t.category),
-        refNo: drift.Value(t.refNo),
-        balanceAfter: drift.Value(t.balanceAfterPaise),
-        at: t.at,
-      ));
+  Future<void> insert(TxnModel t) => db.txnsDao.insertTxn(
+    TxnsCompanion.insert(
+      id: t.id,
+      accountId: t.accountId,
+      amount: t.amountPaise,
+      direction: t.direction.name,
+      mode: t.mode.name,
+      payee: drift.Value(t.payee),
+      category: drift.Value(t.category),
+      refNo: drift.Value(t.refNo),
+      balanceAfter: drift.Value(t.balanceAfterPaise),
+      at: t.at,
+      kind: drift.Value(t.kind.name),
+    ),
+  );
 
   @override
   Future<List<TxnModel>> getForDay(DateTime day) async =>
       (await db.txnsDao.getTxnsForDay(day)).map(toModel).toList();
 
   @override
-  Future<int> totalDebitForDay(DateTime day) => db.txnsDao.totalDebitForDay(day);
+  Future<int> totalSpendForDay(DateTime day) =>
+      db.txnsDao.totalSpendForDay(day);
 }

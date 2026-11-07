@@ -50,15 +50,30 @@ class GenericParser extends BankParser {
   ///   Kotak  : "Sent Rs.1 from Kotak Bank AC X1234 to NAME@upi on 01-11-26"
   ///   Cards  : "spent ... Card XX1234 at AMAZON on ..."
   static final List<RegExp> _payeePatterns = [
-    RegExp(r'UPI\/P2[MAP]\/\d+\/([A-Za-z0-9@._& \-]+?)(?=\s{2,}|\s+(?:Not|If|Avl|Bal|SMS|Call)\b|$)', caseSensitive: false),
+    RegExp(
+      r'UPI\/P2[MAP]\/\d+\/([A-Za-z0-9@._& \-]+?)(?=\s{2,}|\s+(?:Not|If|Avl|Bal|SMS|Call)\b|$)',
+      caseSensitive: false,
+    ),
     RegExp(r';\s*([^;]+?)\s+credited\b', caseSensitive: false),
     RegExp(r'\bto\s+VPA\s+([^\s()]+)', caseSensitive: false),
     RegExp(r'\bfrom\s+VPA\s+([^\s()]+)', caseSensitive: false),
-    RegExp(r'(?:trf|transfer(?:red)?)\s+to\s+(.+?)(?=\s+(?:Ref|Refno|UPI|on|Not|If)\b|[.,;]|$)', caseSensitive: false),
+    RegExp(
+      r'(?:trf|transfer(?:red)?)\s+to\s+(.+?)(?=\s+(?:Ref|Refno|UPI|on|Not|If)\b|[.,;]|$)',
+      caseSensitive: false,
+    ),
     RegExp(r'\bto\s+(.+?)\s+on\s+\d', caseSensitive: false),
-    RegExp(r'\bat\s+(.+?)(?=\s+on\s+\d|\s+(?:Avl|Bal|Limit|Not|If)\b|[.;]|$)', caseSensitive: false),
-    RegExp(r'\bfrom\s+([A-Za-z][^.;]*?)\s*\.\s*(?:UPI|IMPS|NEFT|Ref|Avl|Bal)', caseSensitive: false),
-    RegExp(r'\bby\s+([A-Za-z][A-Za-z0-9@._ &\-]{2,30}?)(?=\s*\(|\s+(?:on|Ref|UPI)\b|[.;]|$)', caseSensitive: false),
+    RegExp(
+      r'\bat\s+(.+?)(?=\s+on\s+\d|\s+(?:Avl|Bal|Limit|Not|If)\b|[.;]|$)',
+      caseSensitive: false,
+    ),
+    RegExp(
+      r'\bfrom\s+([A-Za-z][^.;]*?)\s*\.\s*(?:UPI|IMPS|NEFT|Ref|Avl|Bal)',
+      caseSensitive: false,
+    ),
+    RegExp(
+      r'\bby\s+([A-Za-z][A-Za-z0-9@._ &\-]{2,30}?)(?=\s*\(|\s+(?:on|Ref|UPI)\b|[.;]|$)',
+      caseSensitive: false,
+    ),
     RegExp(r'\binfo[:\-]\s*([^\s.;]+)', caseSensitive: false),
   ];
   static final _badPayee = RegExp(
@@ -112,7 +127,10 @@ class GenericParser extends BankParser {
     }
     if (amountPaise == null) return null;
 
-    final di = _firstIndex(lower, RegExp(r'debited|deducted|withdrawn|spent|sent|paid|purchase'));
+    final di = _firstIndex(
+      lower,
+      RegExp(r'debited|deducted|withdrawn|spent|sent|paid|purchase'),
+    );
     final ci = _firstIndex(lower, RegExp(r'credited|received|deposited'));
     final isDebit = di != -1 && (ci == -1 || di < ci);
 
@@ -140,12 +158,14 @@ class GenericParser extends BankParser {
     final mode = lower.contains('upi') || lower.contains('vpa')
         ? PayMode.upi
         : lower.contains('atm')
-            ? PayMode.atm
-            : lower.contains('neft') || lower.contains('imps') || lower.contains('rtgs')
-                ? PayMode.netBanking
-                : lower.contains('card')
-                    ? PayMode.card
-                    : PayMode.other;
+        ? PayMode.atm
+        : lower.contains('neft') ||
+              lower.contains('imps') ||
+              lower.contains('rtgs')
+        ? PayMode.netBanking
+        : lower.contains('card')
+        ? PayMode.card
+        : PayMode.other;
 
     return ParsedTxn(
       amountPaise: amountPaise,

@@ -41,15 +41,17 @@ class DriftVerdictRepo implements VerdictRepo {
     // `date` is a unique key: reuse the existing row id so this updates in place.
     final existing = await db.verdictsDao.getVerdictForDay(v.date);
     await db.verdictsDao.upsertVerdict(
-        DailyVerdictsCompanion(
-          id: existing == null ? const drift.Value.absent() : drift.Value(existing.id),
-          date: drift.Value(_day(v.date)),
-          rating: drift.Value(v.rating),
-          totalSpent: drift.Value(v.totalSpentPaise),
-          topCulprits: drift.Value(jsonEncode(v.topCulprits)),
-          verdictJson: drift.Value(jsonEncode({'overBudget': v.overBudget})),
-        ),
-      );
+      DailyVerdictsCompanion(
+        id: existing == null
+            ? const drift.Value.absent()
+            : drift.Value(existing.id),
+        date: drift.Value(_day(v.date)),
+        rating: drift.Value(v.rating),
+        totalSpent: drift.Value(v.totalSpentPaise),
+        topCulprits: drift.Value(jsonEncode(v.topCulprits)),
+        verdictJson: drift.Value(jsonEncode({'overBudget': v.overBudget})),
+      ),
+    );
   }
 
   @override
@@ -60,5 +62,7 @@ class DriftVerdictRepo implements VerdictRepo {
 
   @override
   Future<List<DailyVerdictModel>> getRecent({int limit = 30}) async =>
-      (await db.verdictsDao.getRecentVerdicts(limit: limit)).map(_toModel).toList();
+      (await db.verdictsDao.getRecentVerdicts(limit: limit))
+          .map(_toModel)
+          .toList();
 }

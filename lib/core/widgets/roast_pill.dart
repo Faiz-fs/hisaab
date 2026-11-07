@@ -23,7 +23,9 @@ class RoastPill extends StatelessWidget {
     final bg = variant == RoastVariant.positive
         ? AppColors.mint.withAlpha(30)
         : AppColors.red.withAlpha(30);
-    final fg = variant == RoastVariant.positive ? AppColors.mint : AppColors.red;
+    final fg = variant == RoastVariant.positive
+        ? AppColors.mint
+        : AppColors.red;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

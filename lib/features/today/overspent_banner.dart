@@ -18,7 +18,10 @@ class OverspentBanner extends ConsumerWidget {
       curve: Curves.easeOut,
       builder: (context, t, child) => Opacity(
         opacity: t,
-        child: Transform.translate(offset: Offset(0, (1 - t) * -12), child: child),
+        child: Transform.translate(
+          offset: Offset(0, (1 - t) * -12),
+          child: child,
+        ),
       ),
       child: Container(
         width: double.infinity,
@@ -33,7 +36,13 @@ class OverspentBanner extends ConsumerWidget {
             const Icon(Icons.warning_amber_rounded, color: AppColors.red),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(message, style: GoogleFonts.inter(fontSize: 13, color: AppColors.textPrimary)),
+              child: Text(
+                message,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: AppColors.textPrimary,
+                ),
+              ),
             ),
           ],
         ),
