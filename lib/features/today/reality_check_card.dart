@@ -12,12 +12,14 @@ class RealityCheckCard extends StatelessWidget {
   final double burnPct; // spent / budget (can exceed 1.0)
   final DateTime now;
   final RoastLevel roastLevel;
+  final bool isWeekly;
 
   const RealityCheckCard({
     super.key,
     required this.burnPct,
     required this.now,
     this.roastLevel = RoastLevel.honest,
+    this.isWeekly = false,
   });
 
   @override
@@ -91,12 +93,14 @@ class RealityCheckCard extends StatelessWidget {
   );
 
   List<InlineSpan> _message() {
+    final period = isWeekly ? "this week" : "today";
+    final nextPeriod = isWeekly ? "Next week" : "Tomorrow";
     if (roastLevel == RoastLevel.gentle) {
       return [
         TextSpan(
           text: burnPct > 1
-              ? 'Today went over budget. You can reset tomorrow.'
-              : 'You are making progress. Keep an eye on your daily spending.',
+              ? 'You went over budget $period. You can reset next time.'
+              : 'You are making progress. Keep an eye on your spending $period.',
         ),
       ];
     }
@@ -104,10 +108,10 @@ class RealityCheckCard extends StatelessWidget {
       return [
         TextSpan(
           text: burnPct > 1
-              ? 'Your spending exceeded today’s budget. Review your purchases.'
+              ? 'Your spending exceeded your budget $period. Review your purchases.'
               : burnPct >= 0.8
-              ? 'You have used most of today’s budget.'
-              : 'Your spending is currently within today’s budget.',
+              ? 'You have used most of your budget $period.'
+              : 'Your spending is currently within your budget $period.',
         ),
       ];
     }
@@ -118,15 +122,16 @@ class RealityCheckCard extends StatelessWidget {
       return [
         const TextSpan(text: 'You\'re working to fund your own '),
         TextSpan(text: 'bad decisions', style: _hi),
-        const TextSpan(text: '. Tomorrow is a clean slate. Use it.'),
+        TextSpan(text: '. $nextPeriod is a clean slate. Use it.'),
       ];
     }
     if (burnPct >= 0.8) {
       return [
         TextSpan(text: 'It\'s $time and '),
         TextSpan(text: '$pct%', style: _hi),
-        const TextSpan(
-          text: ' of today\'s allowance is gone. One chai away from the red zone.',
+        TextSpan(
+          text:
+              ' of your allowance $period is gone. One chai away from the red zone.',
         ),
       ];
     }
@@ -134,16 +139,18 @@ class RealityCheckCard extends StatelessWidget {
       return [
         TextSpan(text: 'It\'s $time and you\'ve already blown through '),
         TextSpan(text: '$pct%', style: _hi),
-        const TextSpan(
-          text: ' of today\'s allowance. Bold strategy, let\'s see if it pays off.',
+        TextSpan(
+          text:
+              ' of your allowance $period. Bold strategy, let\'s see if it pays off.',
         ),
       ];
     }
     return [
       const TextSpan(text: 'Only '),
       TextSpan(text: '$pct%', style: _hi),
-      const TextSpan(
-        text: ' of today\'s allowance used. Suspiciously disciplined. Keep going.',
+      TextSpan(
+        text:
+            ' of your allowance $period used. Suspiciously disciplined. Keep going.',
       ),
     ];
   }

@@ -4,6 +4,7 @@ import '../db/app_database.dart';
 import '../parser/parser_registry.dart';
 import '../../domain/models/enums.dart';
 import '../../domain/categorizer/categorizer.dart';
+import '../repos/transfer_service.dart';
 import 'dedupe.dart';
 
 /// Why an SMS was (not) imported. Used for diagnostics.
@@ -154,9 +155,22 @@ class SmsIngestService {
     final match = debit
         ? const Categorizer().match(parsed.payee, userRules: rules)
         : null;
-    final category = match?.category;
+    var category = match?.category;
     // Debits default to spend (a payee rule can say family/savings/emi); credits are income.
-    final kind = debit ? (match?.kind ?? 'spend') : 'income';
+    var kind = debit ? (match?.kind ?? 'spend') : 'income';
+    if (!debit) {
+      // Money from a payee you marked as Family is family support, not income.
+      final creditMatch = const Categorizer().match(
+        parsed.payee,
+        userRules: rules,
+      );
+      if (creditMatch != null &&
+          creditMatch.fromUserRule &&
+          creditMatch.kind == 'family') {
+        kind = 'family';
+        category = 'Family';
+      }
+    }
 
     final existing = await (db.select(
       db.txns,
@@ -167,6 +181,7 @@ class SmsIngestService {
       final needPayee = existing.payee == null && parsed.payee != null;
       final needCat =
           existing.categorySource != 'user' &&
+          existing.kind != 'internal' &&
           match != null &&
           (existing.category == null ||
               (match.fromUserRule &&
@@ -230,6 +245,10 @@ class SmsIngestService {
         ),
       );
     }
+    try {
+      await TransferService(db)
+          .markOwnTransfers(since: timestamp.subtract(const Duration(days: 1)));
+    } catch (_) {}
     return IngestOutcome.imported;
   }
 

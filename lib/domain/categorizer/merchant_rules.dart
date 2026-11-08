@@ -100,6 +100,8 @@ const List<(String, String)> kBuiltinRules = [
   ('shell', 'Fuel'),
   ('fillingstation', 'Fuel'),
   ('=cng', 'Fuel'),
+  ('petro', 'Fuel'),
+  ('=fue', 'Fuel'),
 
   // ── Health ──────────────────────────────────────────────────────────────
   ('pharmacy', 'Health'),
@@ -107,6 +109,7 @@ const List<(String, String)> kBuiltinRules = [
   ('medical', 'Health'),
   ('medicine', 'Health'),
   ('medico', 'Health'),
+  ('medic', 'Health'),
   ('chemist', 'Health'),
   ('medplus', 'Health'),
   ('apollo', 'Health'),
@@ -136,6 +139,8 @@ const List<(String, String)> kBuiltinRules = [
   ('fitness', 'Health'),
   ('yoga', 'Health'),
   ('gym', 'Health'),
+  ('hospit', 'Health'),
+  ('diagnos', 'Health'),
 
   // ── Personal care ───────────────────────────────────────────────────────
   ('salon', 'Personal Care'),
@@ -181,9 +186,11 @@ const List<(String, String)> kBuiltinRules = [
   ('licious', 'Groceries'),
   ('=mart', 'Groceries'),
   ('=stores', 'Groceries'),
+  ('supermark', 'Groceries'),
 
   // ── Dining ──────────────────────────────────────────────────────────────
   ('restaurant', 'Dining'),
+  ('restaur', 'Dining'),
   ('restro', 'Dining'),
   ('dominos', 'Dining'),
   ('pizza', 'Dining'),

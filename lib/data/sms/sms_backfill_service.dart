@@ -3,6 +3,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../db/app_database.dart';
 import '../repos/rule_service.dart';
+import '../repos/transfer_service.dart';
 import 'sms_ingest_service.dart';
 
 class SmsImportResult {
@@ -56,6 +57,8 @@ class SmsBackfillService {
   Future<SmsImportResult> run({int days = 15}) async {
     try {
       await RuleService(db).categorizeUncategorized();
+      await TransferService(db).applyFamilyToCredits();
+      await TransferService(db).markOwnTransfers();
     } catch (_) {}
     if (!(await Permission.sms.status).isGranted) {
       return const SmsImportResult(0, 0);
@@ -101,6 +104,9 @@ class SmsBackfillService {
         // Malformed SMS must not abort the rest of the import.
       }
     }
+    try {
+      await TransferService(db).markOwnTransfers();
+    } catch (_) {}
     return SmsImportResult.withUpdates(
       messages.length,
       imported,

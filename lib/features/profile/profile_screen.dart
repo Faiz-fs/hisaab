@@ -72,6 +72,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     try {
       await ref.read(settingsRepoProvider).save(updated);
       ref.invalidate(settingsProvider);
+      ref.invalidate(todayBudgetProvider);
+      ref.invalidate(todayDataProvider);
+      ref.invalidate(todayVerdictProvider);
 
       if (!mounted) return;
 
@@ -660,9 +663,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           _settingsTile(
             icon: Icons.file_download_outlined,
             title: 'Export Expense CSV',
-            subtitle: 'Available after transaction integration',
+            subtitle: 'Share your transactions as a spreadsheet',
+            onTap: () => context.push('/export'),
             trailing: const Icon(
-              Icons.schedule,
+              Icons.chevron_right,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const Divider(color: AppColors.border),
+          _settingsTile(
+            icon: Icons.feedback_outlined,
+            title: 'Send Feedback',
+            subtitle: 'Report a problem or suggest an idea',
+            onTap: () => context.push('/feedback'),
+            trailing: const Icon(
+              Icons.chevron_right,
               color: AppColors.textSecondary,
             ),
           ),

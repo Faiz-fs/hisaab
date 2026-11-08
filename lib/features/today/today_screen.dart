@@ -160,7 +160,7 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
     return ListView(
       padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset),
       children: [
-        const _Header(),
+        _Header(displayName: settings?.displayName ?? data.userName),
         const SizedBox(height: 16),
 
         // Status row.
@@ -385,7 +385,9 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header();
+  final String displayName;
+
+  const _Header({required this.displayName});
 
   @override
   Widget build(BuildContext context) {
@@ -446,7 +448,12 @@ class _Header extends StatelessWidget {
             shape: BoxShape.circle,
             border: Border.all(color: AppColors.primary, width: 1.5),
           ),
-          child: Text('A', style: AppTextStyles.titleMedium),
+          child: Text(
+            displayName.trim().isEmpty
+                ? 'H'
+                : displayName.trim().substring(0, 1).toUpperCase(),
+            style: AppTextStyles.titleMedium,
+          ),
         ),
       ],
     );

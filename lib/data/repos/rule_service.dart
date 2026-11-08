@@ -71,7 +71,7 @@ class RuleService {
   Future<int> _recompute(Iterable<Txn> rows, List<UserRule> rules) async {
     var changed = 0;
     for (final t in rows) {
-      if (t.categorySource == 'user') continue;
+      if (t.categorySource == 'user' || t.kind == 'internal') continue;
       final m = const Categorizer().match(t.payee, userRules: rules);
       final String? category = m?.category;
       final String kind = m?.kind ?? 'spend';

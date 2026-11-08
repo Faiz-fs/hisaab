@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../domain/models/enums.dart';
+import '../providers/settings_provider.dart';
+
 import 'package:go_router/go_router.dart';
 
 import '../core/theme/app_colors.dart';
@@ -6,7 +11,7 @@ import '../core/theme/app_text_styles.dart';
 
 /// Shell scaffold with a floating bottom navigation bar.
 /// Tabs: Today | Money Map | Calendar | Profile
-class AppShell extends StatelessWidget {
+class AppShell extends ConsumerWidget {
   final Widget child;
 
   const AppShell({super.key, required this.child});
@@ -27,7 +32,10 @@ class AppShell extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isWeekly =
+        ref.watch(settingsProvider).asData?.value.budgetMode ==
+        BudgetMode.weekly;
     final idx = _currentIndex(context);
 
     return Scaffold(
@@ -57,7 +65,9 @@ class AppShell extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
-                              _tabs[i].icon,
+                              i == 0 && isWeekly
+                                  ? Icons.date_range_outlined
+                                  : _tabs[i].icon,
                               size: 24,
                               color: i == idx
                                   ? AppColors.primary
@@ -65,7 +75,7 @@ class AppShell extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              _tabs[i].label,
+                              i == 0 && isWeekly ? 'Week' : _tabs[i].label,
                               style: AppTextStyles.labelSmall.copyWith(
                                 color: i == idx
                                     ? AppColors.primary
