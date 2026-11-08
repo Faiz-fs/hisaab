@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../today/today_data.dart';
+import '../today/credit_summary_card.dart';
 import 'day_detail_sheet.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
@@ -104,7 +105,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     return grouped;
   }
 
-  int _spentOn(DateTime date, Map<DateTime, List<TodayTxn>> grouped) {
+  int _totalOn(DateTime date, Map<DateTime, List<TodayTxn>> grouped) {
     return (grouped[date] ?? []).fold<int>(
       0,
       (sum, txn) => sum + txn.amountPaise,
@@ -125,8 +126,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   Color _heatBackground(int spent, int budget) {
     if (spent <= 0) return AppColors.nested;
 
-    final color = _heatColor(spent, budget);
-    return color.withValues(alpha: 0.16);
+    return _heatColor(spent, budget).withValues(alpha: 0.16);
   }
 
   Widget _statPill(String label, int count, Color color) {
@@ -140,7 +140,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _summary(TodayData data, Map<DateTime, List<TodayTxn>> grouped) {
+  Widget _summary(
+    TodayData data,
+    Map<DateTime, List<TodayTxn>> spending,
+    Map<DateTime, List<TodayTxn>> income,
+  ) {
     final now = DateTime.now();
     final currentMonth = _month.year == now.year && _month.month == now.month;
 
@@ -151,20 +155,22 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final monthBudget = dailyBudget * daysInMonth;
 
     var spent = 0;
+    var received = 0;
     var clean = 0;
     var danger = 0;
     var cooked = 0;
 
     for (int day = 1; day <= lastDay; day++) {
       final date = DateTime(_month.year, _month.month, day);
-      final amount = _spentOn(date, grouped);
+      final amount = _totalOn(date, spending);
 
       spent += amount;
+      received += _totalOn(date, income);
 
-      // Days without transaction history are not counted as clean.
-      if (!grouped.containsKey(date)) continue;
+      // Only days with spending history are scored.
+      if (!spending.containsKey(date)) continue;
 
-      if (amount > dailyBudget) {
+      if (dailyBudget <= 0 || amount > dailyBudget) {
         cooked++;
       } else if (amount >= dailyBudget * 0.8) {
         danger++;
@@ -174,8 +180,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     }
 
     final remaining = monthBudget - spent;
-    final progress = monthBudget == 0
-        ? 0.0
+    final progress = monthBudget <= 0
+        ? (spent > 0 ? 1.0 : 0.0)
         : (spent / monthBudget).clamp(0.0, 1.0);
 
     return _panel(
@@ -205,7 +211,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     style: _title(10, color: AppColors.primary),
                   ),
                 ),
-              const SizedBox(width: 8),
               IconButton(
                 onPressed: () => _changeMonth(-1),
                 icon: const Icon(Icons.chevron_left),
@@ -246,6 +251,22 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             ),
           ),
           const SizedBox(height: 16),
+          Row(
+            children: [
+              const Icon(
+                Icons.south_west_rounded,
+                size: 17,
+                color: AppColors.mint,
+              ),
+              const SizedBox(width: 7),
+              Expanded(child: Text('Received this month', style: _body(12))),
+              Text(
+                '+${_money(received)}',
+                style: _title(15, color: AppColors.mint),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 8),
             decoration: BoxDecoration(
@@ -266,7 +287,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _heatmap(TodayData data, Map<DateTime, List<TodayTxn>> grouped) {
+  Widget _heatmap(
+    TodayData data,
+    Map<DateTime, List<TodayTxn>> spending,
+    Map<DateTime, List<TodayTxn>> income,
+  ) {
     final now = DateTime.now();
     final daysInMonth = DateTime(_month.year, _month.month + 1, 0).day;
 
@@ -280,9 +305,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
     for (int day = 1; day <= daysInMonth; day++) {
       final date = DateTime(_month.year, _month.month, day);
-      final spent = _spentOn(date, grouped);
+      final spent = _totalOn(date, spending);
+      final received = _totalOn(date, income);
+
       final future = date.isAfter(DateTime(now.year, now.month, now.day));
       final selected = _sameDay(date, _selectedDate);
+
       final color = _heatColor(spent, data.budget.dailyBudgetPaise);
 
       cells.add(
@@ -337,6 +365,17 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         : AppColors.textSecondary,
                   ),
                 ),
+                if (!future && received > 0) ...[
+                  const SizedBox(height: 3),
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: selected ? AppColors.onPrimary : AppColors.mint,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -393,14 +432,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             children: cells,
           ),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
             children: [
               _legend('Under 80%', AppColors.mint),
-              const SizedBox(width: 13),
               _legend('80–100%', AppColors.amber),
-              const SizedBox(width: 13),
               _legend('Over', AppColors.red),
+              _incomeLegend(),
             ],
           ),
         ],
@@ -426,6 +466,24 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
+  Widget _incomeLegend() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 7,
+          height: 7,
+          decoration: const BoxDecoration(
+            color: AppColors.mint,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 5),
+        Text('Income received', style: _body(9)),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final asyncData = ref.watch(todayDataProvider);
@@ -445,8 +503,17 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             ),
           ),
           data: (data) {
-            final grouped = _groupTransactions(data.historyTxns);
-            final selectedTransactions = grouped[_selectedDate] ?? <TodayTxn>[];
+            final spending = _groupTransactions(data.historyTxns);
+
+            final income = _groupTransactions(data.historyIncomeTxns);
+
+            final selectedSpending = spending[_selectedDate] ?? <TodayTxn>[];
+
+            final selectedIncome = income[_selectedDate] ?? <TodayTxn>[];
+
+            final spentPaise = _totalOn(_selectedDate, spending);
+
+            final receivedPaise = _totalOn(_selectedDate, income);
 
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 115),
@@ -474,19 +541,36 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   ],
                 ),
                 const SizedBox(height: 22),
-                _summary(data, grouped),
+
+                _summary(data, spending, income),
                 const SizedBox(height: 18),
-                _heatmap(data, grouped),
+
+                _heatmap(data, spending, income),
                 const SizedBox(height: 18),
+
+                // A2: Selected-day credit and debit totals.
+                CreditSummaryCard(
+                  title: 'DAILY CASH FLOW',
+                  spentPaise: spentPaise,
+                  receivedPaise: receivedPaise,
+                ),
+                const SizedBox(height: 18),
+
+                // Existing spending details remain unchanged.
+                // Credits will be integrated into this widget
+                // in the next file update.
                 DayDetailSheet(
                   date: _selectedDate,
-                  transactions: selectedTransactions,
+                  transactions: selectedSpending,
+                  incomeTransactions: selectedIncome,
                   dailyBudgetPaise: data.budget.dailyBudgetPaise,
                 ),
+
                 const SizedBox(height: 18),
                 Center(
                   child: Text(
-                    'Only days with available transaction history are scored.',
+                    'Only days with available spending '
+                    'history are scored.',
                     textAlign: TextAlign.center,
                     style: _body(11),
                   ),

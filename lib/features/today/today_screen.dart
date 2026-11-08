@@ -11,14 +11,18 @@ import '../../core/widgets/hisaab_card.dart';
 import '../../core/widgets/money_text.dart';
 import '../../core/widgets/stat_card.dart';
 import '../../core/widgets/txn_tile.dart';
+import '../../domain/models/enums.dart';
+import '../../providers/settings_provider.dart';
+
+import 'credit_summary_card.dart';
 import 'day_timeline_sheet.dart';
 import 'overspent_banner.dart';
 import 'reality_check_card.dart';
+import 'salary_suggestion_card.dart';
 import 'today_data.dart';
-import '../../providers/settings_provider.dart';
-import '../../domain/models/enums.dart';
 
-/// Today screen: daily budget ring, reality check, stats and today's spending.
+/// Today screen: daily budget, credits, salary suggestions,
+/// reality check, statistics and spending transactions.
 class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key});
 
@@ -35,11 +39,11 @@ class TodayScreen extends ConsumerWidget {
           loading: () => const Center(
             child: CircularProgressIndicator(color: AppColors.primary),
           ),
-          error: (e, _) => Center(
+          error: (error, _) => Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
-                'Something broke while loading today.\n$e',
+                'Something broke while loading today.\n$error',
                 style: AppTextStyles.bodyMedium,
                 textAlign: TextAlign.center,
               ),
@@ -51,17 +55,96 @@ class TodayScreen extends ConsumerWidget {
   }
 }
 
-class _TodayBody extends ConsumerWidget {
+class _TodayBody extends ConsumerStatefulWidget {
   final TodayData data;
+
   const _TodayBody({required this.data});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final b = data.budget;
-    final spent = b.spentTodayPaise / 100;
-    final daily = b.dailyBudgetPaise / 100;
-    final left = b.leftPaise / 100;
-    final pct = b.burnPct;
+  ConsumerState<_TodayBody> createState() => _TodayBodyState();
+}
+
+class _TodayBodyState extends ConsumerState<_TodayBody> {
+  bool _savingSalary = false;
+
+  Future<void> _handleSalarySuggestion({required bool accept}) async {
+    if (_savingSalary) return;
+
+    final suggestion = widget.data.incomeSuggestion;
+    if (suggestion == null) return;
+
+    setState(() => _savingSalary = true);
+
+    try {
+      final repo = ref.read(settingsRepoProvider);
+      final settings = await repo.load();
+
+      if (accept && suggestion.amountPaise < settings.monthlyCommitmentsPaise) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Detected salary is below your monthly '
+              'commitments. Update your budget in Profile.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      // Preserve every unrelated setting, including
+      // commitments, pay day and onboarding details.
+      final updated = settings.copyWith(
+        monthlyIncomePaise: accept
+            ? suggestion.amountPaise
+            : settings.monthlyIncomePaise,
+        dismissedIncomeSuggestionId: suggestion.txnId,
+      );
+
+      await repo.save(updated);
+
+      ref.invalidate(settingsProvider);
+      ref.invalidate(todayDataProvider);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            accept
+                ? 'Monthly income updated to '
+                      '${inr(suggestion.amountPaise / 100)}.'
+                : 'Salary suggestion dismissed.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to update salary: $error'),
+          backgroundColor: AppColors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _savingSalary = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final data = widget.data;
+    final budget = data.budget;
+
+    final spent = budget.spentTodayPaise / 100;
+    final daily = budget.dailyBudgetPaise / 100;
+    final left = budget.leftPaise / 100;
+    final pct = budget.burnPct;
+
     final accent = BudgetRing.colorFor(pct);
 
     final modeLabel = pct > 1.0
@@ -72,13 +155,15 @@ class _TodayBody extends ConsumerWidget {
 
     final bottomInset = MediaQuery.paddingOf(context).bottom + 16;
 
+    final settings = ref.watch(settingsProvider).asData?.value;
+
     return ListView(
       padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset),
       children: [
         const _Header(),
         const SizedBox(height: 16),
 
-        // Status row
+        // Status row.
         Row(
           children: [
             Text(
@@ -110,7 +195,7 @@ class _TodayBody extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
 
-        // Greeting. Long-press toggles the overspent mock (debug builds only).
+        // Greeting.
         GestureDetector(
           onLongPress: null,
           child: Text(
@@ -119,6 +204,9 @@ class _TodayBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 6),
+
+        // Daily quota uses the flexible budget,
+        // not the original monthly income / 30.
         Text.rich(
           TextSpan(
             style: AppTextStyles.bodyLarge.copyWith(
@@ -133,7 +221,7 @@ class _TodayBody extends ConsumerWidget {
                 ),
               ),
               TextSpan(
-                text: '  (${inr(b.monthlyIncomePaise / 100)} / 30d)',
+                text: '  (${inr(data.monthBudgetPaise / 100)} flexible pool)',
                 style: AppTextStyles.bodyMedium,
               ),
             ],
@@ -141,7 +229,7 @@ class _TodayBody extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
 
-        // Budget ring card
+        // Budget ring card.
         HisaabCard(
           padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
           onTap: () => DayTimelineSheet.show(context, data),
@@ -196,23 +284,45 @@ class _TodayBody extends ConsumerWidget {
         if (pct > 1.0) ...[
           OverspentBanner(
             message:
-                "You are ${inr(-left)} over today's limit of ${inr(daily)}.",
+                'You are ${inr(-left)} over today\'s '
+                'limit of ${inr(daily)}.',
           ),
           const SizedBox(height: 12),
         ],
+
         RealityCheckCard(
           burnPct: pct,
           now: data.now,
-          roastLevel:
-              ref.watch(settingsProvider).asData?.value.roastLevel ??
-              RoastLevel.honest,
+          roastLevel: settings?.roastLevel ?? RoastLevel.honest,
         ),
         const SizedBox(height: 16),
 
+        // Existing statistics.
         _StatsRow(data: data),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
 
-        // Today's damage
+        // A2: Credits and net cash flow.
+        CreditSummaryCard(
+          receivedPaise: data.todayIncomePaise,
+          spentPaise: budget.spentTodayPaise,
+        ),
+        const SizedBox(height: 16),
+
+        // A2: Possible salary credit.
+        if (data.incomeSuggestion != null) ...[
+          SalarySuggestionCard(
+            detectedAmountPaise: data.incomeSuggestion!.amountPaise,
+            currentIncomePaise: data.monthIncomePaise,
+            isSaving: _savingSalary,
+            onAccept: () => _handleSalarySuggestion(accept: true),
+            onDismiss: () => _handleSalarySuggestion(accept: false),
+          ),
+          const SizedBox(height: 16),
+        ],
+
+        const SizedBox(height: 8),
+
+        // Today's damage.
         Row(
           children: [
             Text(
@@ -257,15 +367,15 @@ class _TodayBody extends ConsumerWidget {
             ),
           )
         else
-          for (final t in data.txns) ...[
+          for (final txn in data.txns) ...[
             TxnTile(
-              icon: t.icon,
-              iconColor: t.color,
-              merchant: t.merchant,
-              note: t.note,
-              meta: '${formatClock(t.at)}  |  ${t.category}',
-              amount: t.rupees,
-              modeLabel: t.mode,
+              icon: txn.icon,
+              iconColor: txn.color,
+              merchant: txn.merchant,
+              note: txn.note,
+              meta: '${formatClock(txn.at)}  |  ${txn.category}',
+              amount: txn.rupees,
+              modeLabel: txn.mode,
             ),
             const SizedBox(height: 10),
           ],
@@ -344,13 +454,15 @@ class _Header extends StatelessWidget {
 }
 
 class _LeftPill extends StatelessWidget {
-  final double left; // rupees, negative when overspent
+  final double left;
   final Color color;
+
   const _LeftPill({required this.left, required this.color});
 
   @override
   Widget build(BuildContext context) {
     final over = left < 0;
+
     final style = AppTextStyles.titleMedium.copyWith(
       color: color,
       fontSize: 15,
@@ -387,14 +499,19 @@ class _LeftPill extends StatelessWidget {
 
 class _StatsRow extends StatelessWidget {
   final TodayData data;
+
   const _StatsRow({required this.data});
 
   @override
   Widget build(BuildContext context) {
     final weekOk = data.weekSpentPaise <= data.weekBudgetPaise;
-    final monthPct = data.monthIncomePaise > 0
-        ? data.monthSpentPaise / data.monthIncomePaise
-        : 0.0;
+
+    // Compare spending against flexible pool,
+    // not total monthly salary.
+    final monthPct = data.monthBudgetPaise > 0
+        ? data.monthSpentPaise / data.monthBudgetPaise
+        : (data.monthSpentPaise > 0 ? 1.01 : 0.0);
+
     final monthColor = BudgetRing.colorFor(monthPct);
 
     return Row(
@@ -417,7 +534,7 @@ class _StatsRow extends StatelessWidget {
           child: StatCard(
             label: 'This Month',
             value: inr(data.monthSpentPaise / 100),
-            secondary: '/ ${inr(data.monthIncomePaise / 100)}',
+            secondary: '/ ${inr(data.monthBudgetPaise / 100)}',
             footer: '${(monthPct * 100).toStringAsFixed(1)}% burnt',
             footerColor: monthColor,
           ),

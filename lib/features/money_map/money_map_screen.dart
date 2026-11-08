@@ -1,11 +1,12 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../today/today_data.dart';
+import 'money_flow_toggle.dart';
 
 enum MoneyPeriod { day, week, month }
 
@@ -36,8 +37,12 @@ class MoneyMapScreen extends ConsumerStatefulWidget {
 
 class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
   MoneyPeriod _period = MoneyPeriod.month;
+  MoneyFlowType _flow = MoneyFlowType.spend;
+
   int _selectedCategory = 0;
   bool _descending = true;
+
+  bool get _isIncome => _flow == MoneyFlowType.income;
 
   static const _palette = [
     AppColors.primary,
@@ -57,21 +62,34 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
 
   String _money(int paise) => _currency.format(paise / 100);
 
+  Color get _accent => _isIncome ? AppColors.mint : AppColors.primary;
+
+  void _changeFlow(MoneyFlowType flow) {
+    setState(() {
+      _flow = flow;
+      _selectedCategory = 0;
+      _descending = true;
+    });
+  }
+
   List<TodayTxn> _transactions(TodayData data) {
     final now = DateTime.now();
-    final startOfToday = DateTime(now.year, now.month, now.day);
+    final today = DateTime(now.year, now.month, now.day);
 
     final DateTime start;
+
     switch (_period) {
       case MoneyPeriod.day:
-        start = startOfToday;
+        start = today;
       case MoneyPeriod.week:
-        start = startOfToday.subtract(Duration(days: now.weekday - 1));
+        start = today.subtract(Duration(days: now.weekday - 1));
       case MoneyPeriod.month:
         start = DateTime(now.year, now.month);
     }
 
-    return data.historyTxns.where((txn) {
+    final source = _isIncome ? data.historyIncomeTxns : data.historyTxns;
+
+    return source.where((txn) {
       return !txn.at.isBefore(start) && !txn.at.isAfter(now);
     }).toList();
   }
@@ -81,12 +99,21 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
     final counts = <String, int>{};
 
     for (final txn in txns) {
+      // Credits currently have the generic Income category.
+      // Use the credit payee for a useful income breakdown.
+      final name = _isIncome
+          ? (txn.merchant.trim().isEmpty ? 'Other income' : txn.merchant.trim())
+          : (txn.category.trim().isEmpty
+                ? 'Uncategorized'
+                : txn.category.trim());
+
       totals.update(
-        txn.category,
+        name,
         (value) => value + txn.amountPaise,
         ifAbsent: () => txn.amountPaise,
       );
-      counts.update(txn.category, (value) => value + 1, ifAbsent: () => 1);
+
+      counts.update(name, (value) => value + 1, ifAbsent: () => 1);
     }
 
     final sorted = totals.entries.toList()
@@ -106,16 +133,39 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
 
   IconData _categoryIcon(String name) {
     final value = name.toLowerCase();
-    if (value.contains('food')) return Icons.restaurant_outlined;
+
+    if (_isIncome) {
+      if (value.contains('salary') || value.contains('payroll')) {
+        return Icons.work_outline;
+      }
+      if (value.contains('refund')) {
+        return Icons.currency_exchange;
+      }
+      if (value.contains('interest')) {
+        return Icons.savings_outlined;
+      }
+      return Icons.south_west_rounded;
+    }
+
+    if (value.contains('food')) {
+      return Icons.restaurant_outlined;
+    }
     if (value.contains('commerce')) {
       return Icons.shopping_basket_outlined;
     }
-    if (value.contains('shop')) return Icons.shopping_bag_outlined;
-    if (value.contains('cafe')) return Icons.local_cafe_outlined;
+    if (value.contains('shop')) {
+      return Icons.shopping_bag_outlined;
+    }
+    if (value.contains('cafe')) {
+      return Icons.local_cafe_outlined;
+    }
     if (value.contains('transport')) {
       return Icons.directions_car_outlined;
     }
-    if (value.contains('social')) return Icons.local_bar_outlined;
+    if (value.contains('social')) {
+      return Icons.local_bar_outlined;
+    }
+
     return Icons.account_balance_wallet_outlined;
   }
 
@@ -166,6 +216,7 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
       child: Row(
         children: periods.map((entry) {
           final selected = _period == entry.$2;
+
           return Expanded(
             child: InkWell(
               borderRadius: BorderRadius.circular(10),
@@ -187,9 +238,7 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
                   textAlign: TextAlign.center,
                   style: _heading(
                     12,
-                    color: selected
-                        ? AppColors.primary
-                        : AppColors.textSecondary,
+                    color: selected ? _accent : AppColors.textSecondary,
                   ),
                 ),
               ),
@@ -208,7 +257,9 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
     if (categories.isEmpty) {
       return _panel(
         child: Text(
-          'No spending detected for this period yet.',
+          _isIncome
+              ? 'No income detected for this period yet.'
+              : 'No spending detected for this period yet.',
           style: _body(14),
         ),
       );
@@ -216,33 +267,50 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
 
     final top = categories.first;
     final share = total == 0 ? 0.0 : top.amountPaise / total;
-    final income = data.monthIncomePaise;
-    final salaryShare = income == 0 ? 0.0 : top.amountPaise / income * 100;
+
+    if (_isIncome) {
+      return _panel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _insightBadge('INCOME INSIGHT', 'MONEY RECEIVED'),
+            const SizedBox(height: 16),
+            Text.rich(
+              TextSpan(
+                style: _heading(21),
+                children: [
+                  const TextSpan(text: 'You received '),
+                  TextSpan(
+                    text: _money(top.amountPaise),
+                    style: _heading(21, color: AppColors.mint),
+                  ),
+                  TextSpan(text: ' from ${top.name}.'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '${(share * 100).toStringAsFixed(1)}% '
+              'of your tracked income came from this source.',
+              style: _body(13),
+            ),
+            const SizedBox(height: 18),
+            _shareIndicator('Share of tracked income', share, AppColors.mint),
+          ],
+        ),
+      );
+    }
+
+    final flexiblePool = data.monthBudgetPaise;
+    final poolShare = flexiblePool == 0
+        ? 0.0
+        : top.amountPaise / flexiblePool * 100;
 
     return _panel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: Text(
-                  '⚡ HARSH TRUTH',
-                  style: _heading(11, color: AppColors.onPrimary),
-                ),
-              ),
-              Text('SALARY LEAK', style: _body(10)),
-            ],
-          ),
+          _insightBadge('⚡ HARSH TRUTH', 'BUDGET LEAK'),
           const SizedBox(height: 16),
           Text.rich(
             TextSpan(
@@ -259,44 +327,68 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            '${salaryShare.toStringAsFixed(1)}% of your monthly income '
-            'went to this category in the selected period.',
+            flexiblePool > 0
+                ? '${poolShare.toStringAsFixed(1)}% of '
+                      'your flexible monthly budget went '
+                      'to this category in the selected period.'
+                : 'Set your flexible monthly budget '
+                      'in Profile to compare spending.',
             style: _body(13),
           ),
           const SizedBox(height: 18),
-          Container(
-            padding: const EdgeInsets.all(13),
-            decoration: BoxDecoration(
-              color: AppColors.nested,
-              borderRadius: BorderRadius.circular(13),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Share of tracked spending',
-                        style: _body(11),
-                      ),
-                    ),
-                    Text(
-                      '${(share * 100).toStringAsFixed(1)}%',
-                      style: _heading(12, color: AppColors.primary),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(
-                    value: share.clamp(0.0, 1.0),
-                    minHeight: 8,
-                    backgroundColor: AppColors.border,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ],
+          _shareIndicator(
+            'Share of tracked spending',
+            share,
+            AppColors.primary,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _insightBadge(String label, String subtitle) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            color: _accent,
+            borderRadius: BorderRadius.circular(30),
+          ),
+          child: Text(label, style: _heading(11, color: AppColors.onPrimary)),
+        ),
+        Text(subtitle, style: _body(10)),
+      ],
+    );
+  }
+
+  Widget _shareIndicator(String label, double share, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: AppColors.nested,
+        borderRadius: BorderRadius.circular(13),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text(label, style: _body(11))),
+              Text(
+                '${(share * 100).toStringAsFixed(1)}%',
+                style: _heading(12, color: color),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: share.clamp(0.0, 1.0),
+              minHeight: 8,
+              backgroundColor: AppColors.border,
+              color: color,
             ),
           ),
         ],
@@ -319,7 +411,10 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Category Proportions', style: _heading(18)),
+                    Text(
+                      _isIncome ? 'Income Sources' : 'Category Proportions',
+                      style: _heading(18),
+                    ),
                     const SizedBox(height: 4),
                     Text('Tap a segment to inspect', style: _body(11)),
                   ],
@@ -333,16 +428,22 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
                 ),
                 child: Text(
                   '${_money(total)} Total',
-                  style: _heading(12, color: AppColors.primary),
+                  style: _heading(12, color: _accent),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 25),
+
           if (categories.isEmpty)
             SizedBox(
               height: 185,
-              child: Center(child: Text('No categories yet', style: _body(14))),
+              child: Center(
+                child: Text(
+                  _isIncome ? 'No income sources yet' : 'No categories yet',
+                  style: _body(14),
+                ),
+              ),
             )
           else
             Center(
@@ -363,9 +464,16 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
                                 response?.touchedSection == null) {
                               return;
                             }
+
+                            final index =
+                                response!.touchedSection!.touchedSectionIndex;
+
+                            if (index < 0 || index >= categories.length) {
+                              return;
+                            }
+
                             setState(() {
-                              _selectedCategory =
-                                  response!.touchedSection!.touchedSectionIndex;
+                              _selectedCategory = index;
                             });
                           },
                         ),
@@ -385,13 +493,15 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
                       children: [
                         Text('SELECTED', style: _body(10)),
                         Text(
-                          '${(selected!.amountPaise / total * 100).toStringAsFixed(0)}%',
+                          total > 0
+                              ? '${(selected!.amountPaise / total * 100).toStringAsFixed(0)}%'
+                              : '0%',
                           style: _heading(28),
                         ),
                         SizedBox(
                           width: 120,
                           child: Text(
-                            selected.name,
+                            selected!.name,
                             textAlign: TextAlign.center,
                             maxLines: 2,
                             style: _heading(11, color: selected.color),
@@ -403,10 +513,13 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
                 ),
               ),
             ),
+
           const SizedBox(height: 20),
+
           LayoutBuilder(
             builder: (context, constraints) {
               final width = (constraints.maxWidth - 8) / 2;
+
               return Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -414,7 +527,9 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
                   for (int i = 0; i < categories.length; i++)
                     InkWell(
                       onTap: () {
-                        setState(() => _selectedCategory = i);
+                        setState(() {
+                          _selectedCategory = i;
+                        });
                       },
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
@@ -479,13 +594,24 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
       children: [
         Row(
           children: [
-            Text('Ranked Leaks', style: _heading(19)),
+            Text(
+              _isIncome ? 'Ranked Income Sources' : 'Ranked Leaks',
+              style: _heading(19),
+            ),
             const SizedBox(width: 8),
-            Text('${categories.length} Categories', style: _body(11)),
-            const Spacer(),
+            Expanded(
+              child: Text(
+                '${categories.length} ${_isIncome ? 'Sources' : 'Categories'}',
+                style: _body(11),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
             TextButton.icon(
               onPressed: () {
-                setState(() => _descending = !_descending);
+                setState(() {
+                  _descending = !_descending;
+                });
               },
               icon: const Icon(Icons.tune, size: 17),
               label: Text(_descending ? 'Highest' : 'Lowest'),
@@ -497,13 +623,17 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
           ],
         ),
         const SizedBox(height: 12),
+
         if (sorted.isEmpty)
           _panel(
             child: Text(
-              'Your spending breakdown will appear here.',
+              _isIncome
+                  ? 'Your income breakdown will appear here.'
+                  : 'Your spending breakdown will appear here.',
               style: _body(13),
             ),
           ),
+
         for (int i = 0; i < sorted.length; i++) ...[
           _categoryTile(sorted[i], i + 1, total),
           const SizedBox(height: 10),
@@ -549,7 +679,7 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
                 children: [
                   Text(_money(category.amountPaise), style: _heading(16)),
                   Text(
-                    '${share.toStringAsFixed(1)}% of spend',
+                    '${share.toStringAsFixed(1)}% of ${_isIncome ? 'income' : 'spend'}',
                     style: _body(10, color: category.color),
                   ),
                 ],
@@ -586,7 +716,7 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
-                'Unable to load spending data.\n$error',
+                'Unable to load Money Map data.\n$error',
                 textAlign: TextAlign.center,
                 style: _body(13),
               ),
@@ -595,6 +725,7 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
           data: (data) {
             final txns = _transactions(data);
             final categories = _categories(txns);
+
             final total = txns.fold<int>(
               0,
               (sum, txn) => sum + txn.amountPaise,
@@ -625,7 +756,7 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
                       onPressed: () {
                         ref.invalidate(todayDataProvider);
                       },
-                      tooltip: 'Refresh spending',
+                      tooltip: 'Refresh Money Map',
                       icon: const Icon(
                         Icons.refresh,
                         color: AppColors.textPrimary,
@@ -633,18 +764,76 @@ class _MoneyMapScreenState extends ConsumerState<MoneyMapScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 20),
+
+                // A2: Spend / Income selector.
+                MoneyFlowToggle(selected: _flow, onChanged: _changeFlow),
+                const SizedBox(height: 16),
+
+                // Shared period selector.
                 _periodSelector(),
                 const SizedBox(height: 16),
+
+                // Total for the selected flow and period.
+                _panel(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: _accent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          _isIncome
+                              ? Icons.south_west_rounded
+                              : Icons.north_east_rounded,
+                          color: _accent,
+                          size: 25,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _isIncome ? 'TOTAL RECEIVED' : 'TOTAL SPENT',
+                              style: _body(11),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              _money(total),
+                              style: _heading(25, color: _accent),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              '${txns.length} transactions',
+                              style: _body(11),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
                 _insightCard(categories, total, data),
                 const SizedBox(height: 16),
+
                 _donutCard(categories, total),
                 const SizedBox(height: 22),
+
                 _rankedLeaks(categories, total),
                 const SizedBox(height: 18),
+
                 Center(
                   child: Text(
-                    'Based on available tracked transactions',
+                    _isIncome
+                        ? 'Based on tracked incoming transactions'
+                        : 'Based on everyday spending only',
                     style: _body(11),
                   ),
                 ),
