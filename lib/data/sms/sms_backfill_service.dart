@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../db/app_database.dart';
+import '../repos/rule_service.dart';
 import 'sms_ingest_service.dart';
 
 class SmsImportResult {
@@ -53,6 +54,9 @@ class SmsBackfillService {
   static const _channel = MethodChannel('hisaab/sms_backfill');
 
   Future<SmsImportResult> run({int days = 15}) async {
+    try {
+      await RuleService(db).categorizeUncategorized();
+    } catch (_) {}
     if (!(await Permission.sms.status).isGranted) {
       return const SmsImportResult(0, 0);
     }

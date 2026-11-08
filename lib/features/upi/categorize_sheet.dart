@@ -8,6 +8,7 @@ import '../../data/db/app_database.dart';
 import '../../domain/categorizer/merchant_rules.dart';
 import '../../providers/db_provider.dart';
 import '../../providers/today_provider.dart';
+import '../../providers/rules_provider.dart';
 import '../today/today_data.dart';
 import 'upi_tracker_screen.dart';
 
@@ -79,19 +80,16 @@ class _CategorizeSheetState extends ConsumerState<CategorizeSheet> {
     final db = ref.read(dbProvider);
     final payee = txn.payee?.trim();
     if (_applyAll && payee != null && payee.isNotEmpty) {
-      await db.payeeRulesDao.upsertByPattern(
-        pattern: payee,
-        category: category,
-        kind: kind,
-      );
-      // The tapped row follows the rule; other manual rows of this payee stay as they are.
+      // The tapped row follows the rule even if it was set by hand before.
       await db.txnsDao.setCategory(
         txn.id,
         category,
         kind: kind,
         source: 'auto',
       );
-      await db.txnsDao.applyRuleToPayee(payee, category, kind);
+      await ref
+          .read(ruleServiceProvider)
+          .saveRule(pattern: payee, category: category, kind: kind);
     } else {
       await db.txnsDao.setCategory(
         txn.id,
