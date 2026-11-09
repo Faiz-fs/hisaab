@@ -8,6 +8,10 @@
 .history
 .vscode/
 
+/android/key.properties
+/android/app/*.jks
+/android/app/*.keystore
+
 
 
 # Flutter repo-specific
