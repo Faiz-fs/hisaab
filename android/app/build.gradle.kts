@@ -1,3 +1,4 @@
+
 import java.util.Properties
 import java.io.FileInputStream
 
@@ -25,6 +26,22 @@ val hasReleaseSigning = listOf(
     "storeFile"
 ).all {
     !keystoreProperties.getProperty(it).isNullOrBlank()
+}
+
+// Refuse to produce a distributable APK signed with the debug certificate.
+// Release signing is intentionally required rather than silently falling back.
+val isReleaseRequested = gradle.startParameter.taskNames.any { task ->
+    val name = task.substringAfterLast(':').lowercase()
+    name.contains("release")
+}
+
+if (isReleaseRequested && !hasReleaseSigning) {
+    throw GradleException(
+        "Hisaab release signing is not configured. " +
+            "Set android/key.properties with storeFile, storePassword, " +
+            "keyAlias and keyPassword. " +
+            "Never distribute an APK signed with the debug key."
+    )
 }
 
 android {
@@ -73,14 +90,11 @@ android {
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            //
-            // Updated: use dedicated release signing when configured.
-            // Otherwise retain debug signing for local testing only.
-            signingConfig = if (hasReleaseSigning) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
+            // Previously signed with debug keys when release credentials were absent.
+            // Updated: require a dedicated release signing configuration for distribution.
+            // Debug signing is never used for distributable releases.
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
             }
 
             isMinifyEnabled = false
